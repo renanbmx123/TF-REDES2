@@ -185,8 +185,7 @@ int main()
 	sadr_ll.sll_addr[3]  = DESTMAC3;
 	sadr_ll.sll_addr[4]  = DESTMAC4;
 	sadr_ll.sll_addr[5]  = DESTMAC5;
-  int count = 0;
-	while(count <3){
+	while(!endFileTransmission){
     printf("sending...\n");
 
     get_ip();
@@ -196,12 +195,11 @@ int main()
 			     printf("error in sending....sendlen=%d....errno=%d\n",send_len,errno);
 			        return -1;
 	           }
-    // 
+    //
     sendbuff = aux;
     total_len = 0;
     send_len = 0;
     total_len+=sizeof(struct ethhdr);
-    count ++;
 	}
     fclose (pFile);
 
