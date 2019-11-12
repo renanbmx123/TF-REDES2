@@ -43,7 +43,7 @@ int total_len = 0, send_len = 0;
 void get_eth_index()
 {
 	memset(&ifreq_i,0,sizeof(ifreq_i));
-	strncpy(ifreq_i.ifr_name,"wlo1",IFNAMSIZ-1);
+	strncpy(ifreq_i.ifr_name,ifName,IFNAMSIZ-1);
 
 	if((ioctl(sock_raw,SIOCGIFINDEX,&ifreq_i))<0)
 		printf("error in index ioctl reading");
@@ -55,7 +55,7 @@ void get_eth_index()
 void get_mac()
 {
 	memset(&ifreq_c,0,sizeof(ifreq_c));
-	strncpy(ifreq_c.ifr_name,"wlo1",IFNAMSIZ-1);
+	strncpy(ifreq_c.ifr_name,ifName,IFNAMSIZ-1);
 
 	if((ioctl(sock_raw,SIOCGIFHWADDR,&ifreq_c))<0)
 		printf("error in SIOCGIFHWADDR ioctl reading");
