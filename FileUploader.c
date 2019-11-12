@@ -27,16 +27,16 @@ int sock_raw;
 unsigned char *sendbuff;
 FILE *pFile;
 char endFileTransmission = 0;
+char ifName[100];
 
+#define DESTMAC0	0x08
+#define DESTMAC1	0x00
+#define DESTMAC2	0x27
+#define DESTMAC3	0x56
+#define DESTMAC4	0x75
+#define DESTMAC5	0x1a
 
-#define DESTMAC0	0xd0
-#define DESTMAC1	0x67
-#define DESTMAC2	0xe5
-#define DESTMAC3	0x12
-#define DESTMAC4	0x6f
-#define DESTMAC5	0x8f
-
- #define destination_ip "192.168.0.199"
+#define destination_ip "10.0.2.15"
 
 int total_len = 0, send_len = 0;
 
@@ -133,7 +133,7 @@ unsigned short checksum(unsigned short* buff, int _16bitword)
 void get_ip()
 {
 	memset(&ifreq_ip,0,sizeof(ifreq_ip));
-	strncpy(ifreq_ip.ifr_name,"wlo1",IFNAMSIZ-1);
+	strncpy(ifreq_ip.ifr_name,"eth0",IFNAMSIZ-1);
   	 if(ioctl(sock_raw,SIOCGIFADDR,&ifreq_ip)<0)
  	 {
 		printf("error in SIOCGIFADDR \n");
@@ -155,10 +155,15 @@ void get_ip()
 
 }
 
-int main()
+int main(int argc, char *argv[])
 {
   pFile=fopen ("README.md","r");
 
+
+	if (argc > 1)
+		strcpy(ifName, argv[1]);
+	else
+		strcpy(ifName, "eth0");
 	sock_raw=socket(AF_PACKET,SOCK_RAW,IPPROTO_RAW);
 	if(sock_raw == -1)
 		printf("error in socket");
