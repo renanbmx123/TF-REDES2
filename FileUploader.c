@@ -23,7 +23,7 @@ struct ifreq ifreq_c,ifreq_i,ifreq_ip; /// for each ioctl keep diffrent ifreq st
 struct iphdr *iph;
 struct udphdr *udph;
 
-int sock_raw;
+int sock_raw,numseq=0;
 unsigned char *sendbuff;
 FILE *pFile;
 char endFileTransmission = 0;
@@ -91,16 +91,34 @@ void get_mac()
 
 void get_data()
 {
-  int c;
+  int c,aux;
+
+	/*|Numseq|TAM|FLAGS|*/
+	sendbuff[total_len++]=htons(numseq);
+	aux=total_len;
+	sendbuff[total_len++]=htons(0x00);
+	sendbuff[total_len++]=htons(0x0);
+	printf("len = %d\n",total_len);
       do {
         c = fgetc(pFile);
-        // printf("%c", c );
-
+        printf("%c", c );
         sendbuff[total_len++] = c;
       } while ((total_len < 512) && !feof(pFile));
+ 	
+	printf("len = %d\n",total_len);
+	sendbuff[aux]=htons(total_len);
       if (feof(pFile)){
         endFileTransmission = 1;
-      }
+	numseq=0;
+      }/**/
+		/*c=fread (sendbuff, sizeof(char), 512, pFile);
+		//message[BUFLEN-1]=0;
+		printf("%s \n",sendbuff);
+		total_len=c;printf("lido %d bytes\n",total_len);
+		if(total_len<512){
+			endFileTransmission = 1;
+		}*/
+	
 }
 
 void get_udp()
@@ -133,7 +151,7 @@ unsigned short checksum(unsigned short* buff, int _16bitword)
 void get_ip()
 {
 	memset(&ifreq_ip,0,sizeof(ifreq_ip));
-	strncpy(ifreq_ip.ifr_name,"eth0",IFNAMSIZ-1);
+	strncpy(ifreq_ip.ifr_name,ifName,IFNAMSIZ-1);
   	 if(ioctl(sock_raw,SIOCGIFADDR,&ifreq_ip)<0)
  	 {
 		printf("error in SIOCGIFADDR \n");
@@ -151,13 +169,14 @@ void get_ip()
 	get_udp();
 	iph->tot_len	= htons(total_len - sizeof(struct ethhdr));
   //printf("tamanho: %d\n",htonl(iph->tot_len));
+	iph->check = 0;
 	iph->check	= htons(checksum((unsigned short*)(sendbuff + sizeof(struct ethhdr)), (sizeof(struct iphdr)/2)));
 
 }
 
 int main(int argc, char *argv[])
 {
-  pFile=fopen ("README.md","r");
+  	pFile=fopen ("README.md","r");
 
 
 	if (argc > 1)
@@ -168,16 +187,16 @@ int main(int argc, char *argv[])
 	if(sock_raw == -1)
 		printf("error in socket");
 	sendbuff=(unsigned char*)malloc(64); // increase in case of large data.Here data is --> AA  BB  CC  DD  EE
-  memset(sendbuff,0,64);
-  unsigned char *aux = sendbuff;
+  	memset(sendbuff,0,64);
+ 	unsigned char *aux = sendbuff;
 
-  //inicializando estruturas.
-  iph = (struct iphdr*)(sendbuff + sizeof(struct ethhdr));
-  udph = (struct udphdr *)(sendbuff + sizeof(struct iphdr) + sizeof(struct ethhdr));
+  	//inicializando estruturas.
+  	iph = (struct iphdr*)(sendbuff + sizeof(struct ethhdr));
+  	udph = (struct udphdr *)(sendbuff + sizeof(struct iphdr) + sizeof(struct ethhdr));
 
 
 
-  get_eth_index();  // interface number
+  	get_eth_index();  // interface number
 	get_mac();
 	// get_ip();
 
