@@ -93,7 +93,7 @@ void get_data()
 {
   int c,aux;
 
-	/*|Numseq|TAM|FLAGS|*/
+	/*|Numseq|TAM 2 Bytes|FLAGS|*/
 	sendbuff[total_len++]=htons(numseq);
 	aux=total_len;
 	sendbuff[total_len++]=htons(0x00);
