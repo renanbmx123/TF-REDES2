@@ -19,11 +19,17 @@
 #include<linux/if_packet.h>
 
 #include<arpa/inet.h>
+
+#include "cabecalho.h" 
+
+
 struct ifreq ifreq_c,ifreq_i,ifreq_ip; /// for each ioctl keep diffrent ifreq structure otherwise error may come in sending(sendto )
 struct iphdr *iph;
 struct udphdr *udph;
+struct cabecalho cab;
 
-int sock_raw,numseq=0;
+int sock_raw;
+uint8_t numseq=0;
 unsigned char *sendbuff;
 FILE *pFile;
 char endFileTransmission = 0;
@@ -91,15 +97,23 @@ void get_mac()
 
 void get_data()
 {
-  int c,aux;
-
+  	int c,aux;
+	char arq[512];
+	printf("\taqui\n");
 	/*|Numseq|TAM 2 Bytes|FLAGS|*/
-	sendbuff[total_len++]=htons(numseq);
+	/*sendbuff[total_len++]=htons(numseq);
 	aux=total_len;
 	sendbuff[total_len++]=htons(0x00);
-	sendbuff[total_len++]=htons(0x0);
+	sendbuff[total_len++]=htons(0x0);*/
+	printf("\tnumseq=%d\n",numseq);
+	cab.numseq=htons(numseq++);
+	printf("\tnumseq=%X\n",ntohs(cab.numseq));
+	printf("\tnumseq=%X\n",cab.numseq);
+	cab.flags=htons(0x00FF);
+	printf("\tflags=%X\n",cab.flags);
+	printf("\taqui3\n");
 	printf("len = %d\n",total_len);
-      do {
+      /*do {
         c = fgetc(pFile);
         printf("%c", c );
         sendbuff[total_len++] = c;
@@ -111,13 +125,27 @@ void get_data()
         endFileTransmission = 1;
 	numseq=0;
       }/**/
-		/*c=fread (sendbuff, sizeof(char), 512, pFile);
-		//message[BUFLEN-1]=0;
-		printf("%s \n",sendbuff);
-		total_len=c;printf("lido %d bytes\n",total_len);
-		if(total_len<512){
-			endFileTransmission = 1;
-		}*/
+	c = fread (arq, sizeof(char), 512, pFile);
+	//total_len=c;
+	//printf("Arq= %s\n",arq);
+	printf("lido %d bytes\n",c);
+	if(c<512){
+		printf("\taqui9\n");
+		endFileTransmission = 1;
+	}/**/
+	printf("\taqui4\n");
+	cab.tam=htons(strlen(arq));
+	printf("tam %d \n",ntohs(cab.tam));
+	printf("tam %X \n",cab.tam);
+	printf("\taqui5\n");
+	memcpy(sendbuff+total_len, &cab,sizeof(cab));
+	total_len+=sizeof(cab);
+	printf("\taqui6\n");
+	memcpy(sendbuff+total_len, arq,strlen(arq));
+	printf("\taqui7\n");
+	total_len+=strlen(arq);
+	printf("\taqui8\n");
+	printf("%s \n",sendbuff);
 	
 }
 
