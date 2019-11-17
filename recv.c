@@ -178,7 +178,7 @@ void udp_header(unsigned char* buffer, int buflen, int sel)
 		send_ip->tot_len	= htons(buflen - sizeof(struct ethhdr));
 		send_ip->check	= htons(checksum((unsigned short*)(buffer + sizeof(struct ethhdr)), (sizeof(struct iphdr)/2)));
 		get_data(buffer,buflen, sel);
-	}
+		
 }
 
 void data_process(unsigned char* buffer,int buflen)
@@ -216,11 +216,8 @@ void data_process(unsigned char* buffer,int buflen)
 						/*if(fwrite(data, sizeof(char), ntohs(cab->tam),pFile) < ntohs(cab->tam))     /* Escreve a variável NUM | o operador sizeof, que retorna o tamanho em bytes da variável ou do tipo de dados. 
 							printf("Erro na escrita do arquivo");*/
 						udp_header(send_buffer, send_len, 0);
-						saddr_len=sizeof saddr;
-						send_len = send(sock_r,send_buffer, send_len,0);
-						if(send_len<0){
-								 printf("error in sending....sendlen=%d....errno=%d\n",send_len,errno);
-						}
+						//saddr_len=sizeof saddr;
+						
 					//
 						//send_buffer = aux;
 						//send_len = 0;
