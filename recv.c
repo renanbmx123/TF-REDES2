@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include <sys/socket.h>
 #include<errno.h>
 
@@ -49,7 +50,6 @@ struct ifreq ifreq_c,ifreq_i,ifreq_ip; /// for each ioctl keep diffrent ifreq st
 struct iphdr  *ip;
 struct ethhdr *eth;
 struct udphdr *udp;
-struct tcphdr *tcph;
 
 struct iphdr *send_ip;
 struct ethhdr *send_eth;
@@ -67,18 +67,17 @@ void get_eth_index(){
 
 }
 
-void get_mac()
-{
+void get_mac(){
 	memset(&ifreq_c,0,sizeof(ifreq_c));
 	strncpy(ifreq_c.ifr_name,ifName,IFNAMSIZ-1);
 
 	if((ioctl(sock_r,SIOCGIFHWADDR,&ifreq_c))<0)
 		printf("error in SIOCGIFHWADDR ioctl reading");
 }
-unsigned short checksum(unsigned short* buff, int _16bitword)
-{
+
+unsigned short checksum(unsigned short* buff, int _16bitword){
 	unsigned long sum;
-	for(sum=0;_16bitword>0;_16bitwortcp_headerd--)
+	for(sum=0;_16bitword>0;_16bitword--)
 		sum+=htons(*(buff)++);
 	do
 	{
@@ -87,10 +86,10 @@ unsigned short checksum(unsigned short* buff, int _16bitword)
 	while(sum & 0xFFFF0000);
 
 	return (~sum);
-}
+	}
 
-void ethernet_header(unsigned char* buffer,int buflen, int sel)
-{
+
+void ethernet_header(unsigned char* buffer,int buflen, int sel){
 		if (sel == 1) {
 			eth = (struct ethhdr *)(buffer);
 		} else
@@ -115,8 +114,7 @@ void ethernet_header(unsigned char* buffer,int buflen, int sel)
 		}
 }
 
-void ip_header(unsigned char* buffer,int buflen, int sel)
-{
+void ip_header(unsigned char* buffer,int buflen, int sel){
 	if(sel == 1){
 		ip = (struct iphdr*)(buffer + sizeof(struct ethhdr));
 
@@ -147,25 +145,7 @@ void ip_header(unsigned char* buffer,int buflen, int sel)
 	 	send_ip->saddr	  = inet_addr(inet_ntoa((((struct sockaddr_in *)&(ifreq_ip.ifr_addr))->sin_addr)));
 	 	memcpy(&send_ip->daddr , inet_ntoa(source.sin_addr), sizeof(source.sin_addr)); // put destination IP address
 		buflen += sizeof(struct iphdr);
-
-	}
-	}
-	void tcp_header(unsigned char* buffer, int buflen){
-		tcph->th_sport = htons(udp->dest);
-  	tcph->th_dport = htons (udp->source);
-  	tcph->th_seq = random ();/* in a SYN packet, the sequence is a random */
-  	tcph->th_ack = 0;/* number, and the ack sequence is 0 in the 1st packet */
-  	tcph->th_x2 = 0;
-  	tcph->th_off = 0;		/* first and only tcp segment */
-  	tcph->th_flags = TH_ACK;	/* ack */
-  	tcph->th_win = htonl (65535);	/* maximum allowed window size */
-  	tcph->th_sum = 0;
-  	tcph->th_urp = 0;
-		send_ip->check	= htons(checksum((unsigned short*)(buffer + sizeof(struct ethhdr)), (sizeof(struct iphdr)/2)));
-
-	}
-send_udp = (struct udphdr *)(buffer + sizeof(struct iphdr) + sizeof(struct ethhdr));
-
+		send_udp = (struct udphdr *)(buffer + sizeof(struct iphdr) + sizeof(struct ethhdr));
 		send_udp->source	= htons(udp->dest);
 		send_udp->dest	= htons(udp->source);
 		send_udp->check	= 0;
@@ -174,8 +154,8 @@ send_udp = (struct udphdr *)(buffer + sizeof(struct iphdr) + sizeof(struct ethhd
 
 		send_ip->tot_len	= htons(buflen - sizeof(struct ethhdr));
 		send_ip->check	= htons(checksum((unsigned short*)(buffer + sizeof(struct ethhdr)), (sizeof(struct iphdr)/2)));
-		get_data(buffer,buflen, sel);
-
+		get_data(buffer, buflen, sel);
+	}
   // fprintf(pFile , "\nIP Header\n");
 }
 void get_data(unsigned char* buffer, int buflen, int sel){
@@ -200,7 +180,7 @@ void udp_header(unsigned char* buffer, int buflen, int sel)
 	if(sel == 1){
 		udp = (struct udphdr*)(buffer + iphdrlen + sizeof(struct ethhdr));
 	}else {
-	tcp_header(buffer, buflen);
+	// tcp_header(buffer, buflen);
 	}
 
 }
