@@ -126,15 +126,16 @@ void data_process(unsigned char* buffer,int buflen)
         int i = 0;
         unsigned char * data = (buffer + iphdrlen  + sizeof(struct ethhdr) + sizeof(struct udphdr));
         int remaining_data = buflen - (iphdrlen  + sizeof(struct ethhdr) + sizeof(struct udphdr));
+        //memcpy(pFile,data, sizeof(data));
         for(i=0;i<remaining_data;i++)
         {
-          fprintf(pFile,"%c",data[i]);
+          putc(data[i], pFile);
         }
 
       }
 
 	   }
-}
+   }  
 }
 
 int main(int argc, char *argv[])
@@ -150,7 +151,7 @@ int main(int argc, char *argv[])
     else
     strcpy(ifName, "eth0");
 
-	pFile=fopen("RECEBIDO.txt","w");
+	pFile=fopen("RECEBIDO.md","w");
 	if(!pFile)
 	{
 		printf("unable to open log.txt\n");
