@@ -20,7 +20,7 @@
 
 #include<arpa/inet.h>
 
-#include "cabecalho.h" 
+#include "cabecalho.h"
 
 
 struct ifreq ifreq_c,ifreq_i,ifreq_ip; /// for each ioctl keep diffrent ifreq structure otherwise error may come in sending(sendto )
@@ -35,14 +35,14 @@ FILE *pFile;
 char endFileTransmission = 0;
 char ifName[100];
 
-#define DESTMAC0	0x08
-#define DESTMAC1	0x00
-#define DESTMAC2	0x27
-#define DESTMAC3	0x56
-#define DESTMAC4	0x75
-#define DESTMAC5	0x1a
+#define DESTMAC0	0xd8
+#define DESTMAC1	0xfc
+#define DESTMAC2	0x93
+#define DESTMAC3	0x77
+#define DESTMAC4	0xdd
+#define DESTMAC5	0xc3
 
-#define destination_ip "10.0.2.15"
+#define destination_ip "192.168.0.187"
 
 int total_len = 0, send_len = 0;
 
@@ -109,6 +109,21 @@ void get_data()
 	printf("\tflags=%X\n",cab.flags);
 	printf("\taqui3\n");
 	printf("len = %d\n",total_len);
+<<<<<<< HEAD
+=======
+      /*do {
+        c = fgetc(pFile);
+        printf("%c", c );
+        sendbuff[total_len++] = c;
+      } while ((total_len < 512) && !feof(pFile));
+
+	printf("len = %d\n",total_len);
+	sendbuff[aux]=htons(total_len);
+      if (feof(pFile)){
+        endFileTransmission = 1;
+	numseq=0;
+      }/**/
+>>>>>>> 077d5930db062fa55735216bebf5ff3dd94537a9
 	c = fread (arq, sizeof(char), 512, pFile);
 	//total_len=c;
 	//printf("Arq= %s\n",arq);
@@ -130,7 +145,7 @@ void get_data()
 	total_len+=strlen(arq);
 	printf("\taqui8\n");
 	printf("%s \n",sendbuff);
-	
+
 }
 
 void get_udp()

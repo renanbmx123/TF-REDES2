@@ -13,7 +13,7 @@
 #include "irc.h"
 
 #define PROTO_UDP	17
-#define DST_PORT	8000
+#define DST_PORT	5002
 
 char this_mac[6];
 char bcast_mac[6] =	{0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
@@ -88,14 +88,14 @@ void split(char msg[],int s,int op, char canal[], char nick[]){
 								strcpy(nick,aux);
 								break;
 							case 2:
-								
+
 								break;
 							}
 							flag++;
 						break;
 				}
 				//printf("%s\n",aux);
-				for(;fim>=0;fim--){	
+				for(;fim>=0;fim--){
 					aux[fim] = ' ';
 				}
 				fim=0;
@@ -179,7 +179,7 @@ char trat(char out[],user *u,char msg[],int s){
 					//printf("%s\n",canais[c].ult->usr->nick);
 				}
 			}
-			//form(msg,u,JOIN,P);			
+			//form(msg,u,JOIN,P);
 			strcpy(out,aux);
 			return JOIN;
 			printf("2%s\n",canal);
@@ -230,7 +230,7 @@ char trat(char out[],user *u,char msg[],int s){
 			//printf("msg = %s\n",aux);
 			split(aux,s,P,canal,nick);
 			strcpy(out,aux);
-			
+
 			//strcpy(channel,canal);
 			//printf("#%s\n\t<%s> %s\n",canal,nick,out);
 			return PRIVMSG;
@@ -255,13 +255,13 @@ char trat(char out[],user *u,char msg[],int s){
 			return QUIT;
 			break;
 	}
-	
+
 	/*for (c=1;c<sizeof(sting);c++){
 		if(string[c]!="/"){
 			if(string[c]!=" "){
 				aux=[c]=string[c];
 			}else{
-				
+
 			}
 		}else{
 			continue;
@@ -314,12 +314,12 @@ void form(char msg[],user *u, char tipo, int op){
 }
 
 /*int send(char msg[];user *u){
-	
-	
+
+
 }
 int recv(char msg[];user *u){
-	
-	
+
+
 }*/
 
 uint32_t ipchksum(uint8_t *packet)
@@ -340,7 +340,7 @@ int main(int argc, char *argv[])
 	int sockfd, numbytes;
 	char *p;
 	struct sockaddr_ll socket_address;
-	uint8_t msg[30];	
+	uint8_t msg[30];
 	uint16_t auxport;
 	int pos;
 	int c=0;
@@ -358,7 +358,7 @@ int main(int argc, char *argv[])
 	/* Open RAW socket */
 	if ((sockfd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL))) == -1)
 		perror("socket");
-	
+
 	/* Set interface to promiscuous mode */
 	strncpy(ifopts.ifr_name, ifName, IFNAMSIZ-1);
 	ioctl(sockfd, SIOCGIFFLAGS, &ifopts);
@@ -369,7 +369,7 @@ int main(int argc, char *argv[])
 
 	while (1){
 		/*recv*/
-		
+
 		numbytes = recvfrom(sockfd, buffer_u.raw_data, ETH_LEN, 0, NULL, NULL);
 		if (buffer_u.cooked_data.ethernet.eth_type == ntohs(ETH_P_IP) ){//&& ((buffer_u.cooked_data.payload.ip.dst[0] == 10)&&(buffer_u.cooked_data.payload.ip.dst[1]==32)&&(buffer_u.cooked_data.payload.ip.dst[2]==143)&&(buffer_u.cooked_data.payload.ip.dst[3]==83)
 			/*printf("IP packet, %d bytes - src ip: %d.%d.%d.%d dst ip: %d.%d.%d.%d proto: %d\n",
@@ -383,7 +383,7 @@ int main(int argc, char *argv[])
 			if (buffer_u.cooked_data.payload.ip.proto == PROTO_UDP && buffer_u.cooked_data.payload.udp.udphdr.dst_port == ntohs(DST_PORT)){
 				p = (char *)&buffer_u.cooked_data.payload.udp.udphdr + ntohs(buffer_u.cooked_data.payload.udp.udphdr.udp_len);
 				*p = '\0';
-				printf("src port: %d dst port: %d size: %d msg: %s\n", 
+				printf("src port: %d dst port: %d size: %d msg: %s\n",
 				ntohs(buffer_u.cooked_data.payload.udp.udphdr.src_port), ntohs(buffer_u.cooked_data.payload.udp.udphdr.dst_port),
 				ntohs(buffer_u.cooked_data.payload.udp.udphdr.udp_len), (char *)&buffer_u.cooked_data.payload.udp.udphdr + sizeof(struct udp_hdr)
 				);
@@ -402,9 +402,9 @@ int main(int argc, char *argv[])
 						printf("nick: %s - canal:%s, IP: %d.%d.%d.%d, MAC: %x:%x:%x:%x:%x:%x\n",usuarios[c].nick,usuarios[c].canal,usuarios[c].ip[0],usuarios[c].ip[1],usuarios[c].ip[2],usuarios[c].ip[3],usuarios[c].mac[0],usuarios[c].mac[1],usuarios[c].mac[2],usuarios[c].mac[3],usuarios[c].mac[4],usuarios[c].mac[5]);
 				}
 				op=trat(msg,&usuarios[pos],(char *)&buffer_u.cooked_data.payload.udp.udphdr + sizeof(struct udp_hdr),ntohs(buffer_u.cooked_data.payload.udp.udphdr.udp_len));
-	
+
 				/*envio*/
-	
+
 				auxU=usuarios[pos];
 				printf("fimC =%d\n",fimC);
 				for(c=0;c<fimC;c++){
@@ -479,10 +479,10 @@ int main(int argc, char *argv[])
 
 									//fim echo
 					}
-					
+
 				}else {
 					form(msg,&auxU,PRIVMSG,P);
-					//echo send			
+					//echo send
 					/* Get the index of the interface */
 					memset(&if_idx, 0, sizeof(struct ifreq));
 					strncpy(if_idx.ifr_name, ifName, IFNAMSIZ-1);
@@ -546,7 +546,7 @@ int main(int argc, char *argv[])
 				}
 						continue;
 			}
-		}		
+		}
 				//printf("got a packet, %d bytes\n", numbytes);
 	}
 
