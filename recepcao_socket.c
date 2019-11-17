@@ -169,7 +169,7 @@ int main(int argc,char *argv[])
 	ifr.ifr_flags |= IFF_PROMISC;
 	ioctl(sockd, SIOCSIFFLAGS, &ifr);
 	
-
+ 
 
 	// recepcao de pacotes
 	while (1) {
