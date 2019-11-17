@@ -8,12 +8,16 @@
 #include <netinet/ip.h>       // struct ip6_hdr
 #include <netinet/udp.h>      // struct tcphdr
 #include <netinet/if_ether.h> // struct ehternet
+#include <netinet/tcp.h>				/* the names on other systems are easy to guess.. */
+
 
 // Libraries for setting interface in promiscuous mode!! ifreq
 #include <net/if.h>
 #include <sys/ioctl.h>
 
 #include "cabecalho.h"
+
+
 
 // #define ifName "enp7s0"
 #define ETHERTYPE_IPV4 0x08000
@@ -24,9 +28,6 @@
 #define DESTMAC3	0x77
 #define DESTMAC4	0xdd
 #define DESTMAC5	0xc3
-
-char dst[] ={0xd8,0xfc,0x93,0x77,0xdd,0xc3};
-char src[] ={0x80,0x86,0xF2,0xF1,0x30,0x4C};
 
 int iphdrlen, sock_r;
 uint16_t current_ack = 0;
@@ -39,9 +40,10 @@ struct sockaddr saddr;
 struct sockaddr_in source,dest;
 struct ifreq ifreq_c,ifreq_i,ifreq_ip; /// for each ioctl keep diffrent ifreq structure otherwise error may come in sending(sendto )
 
-struct iphdr *ip;
+struct iphdr  *ip;
 struct ethhdr *eth;
 struct udphdr *udp;
+struct tcphdr *tcph;
 
 struct iphdr *send_ip;
 struct ethhdr *send_eth;
@@ -80,7 +82,6 @@ unsigned short checksum(unsigned short* buff, int _16bitword)
 
 	return (~sum);
 }
-
 
 void ethernet_header(unsigned char* buffer,int buflen, int sel)
 {
@@ -129,19 +130,36 @@ void ip_header(unsigned char* buffer,int buflen, int sel)
 
 	 	printf("%s\n",inet_ntoa((((struct sockaddr_in*)&(ifreq_ip.ifr_addr))->sin_addr)));
 		send_ip = (struct iphdr*)(buffer + sizeof(struct ethhdr));
-		send_ip->ihl	= 5;
+		send_ip->ihl			= 5;
 	 	send_ip->version	= 4;
-	 	send_ip->tos	= 16;
-	 	send_ip->id		= htons(10201);
-	 	send_ip->ttl	= 64;
-	 	send_ip->protocol	= 17;
-	 	send_ip->saddr	= inet_addr(inet_ntoa((((struct sockaddr_in *)&(ifreq_ip.ifr_addr))->sin_addr)));
+	 	send_ip->tos			= 16;
+	 	send_ip->id			  = htons(10201);
+	 	send_ip->ttl	    = 255;
+	 	send_ip->protocol	= 6;
+		send_ip->tot_len  =  sizeof (struct ip) + sizeof (struct tcphdr);
+		send_ip->check	  = 0;
+	 	send_ip->saddr	  = inet_addr(inet_ntoa((((struct sockaddr_in *)&(ifreq_ip.ifr_addr))->sin_addr)));
 	 	memcpy(&send_ip->daddr , inet_ntoa(source.sin_addr), sizeof(source.sin_addr)); // put destination IP address
-	 	buflen += sizeof(struct iphdr);
+		buflen += sizeof(struct iphdr);
+
+	}
+	}
+	void tcp_header(unsigned char* buffer, int buflen){
+		tcph->th_sport = htons(udp->dest);
+  	tcph->th_dport = htons (udp->source);
+  	tcph->th_seq = random ();/* in a SYN packet, the sequence is a random */
+  	tcph->th_ack = 0;/* number, and the ack sequence is 0 in the 1st packet */
+  	tcph->th_x2 = 0;
+  	tcph->th_off = 0;		/* first and only tcp segment */
+  	tcph->th_flags = TH_ACK;	/* ack */
+  	tcph->th_win = htonl (65535);	/* maximum allowed window size */
+  	tcph->th_sum = 0;
+  	tcph->th_urp = 0;
+		send_ip->check	= htons(checksum((unsigned short*)(buffer + sizeof(struct ethhdr)), (sizeof(struct iphdr)/2)));
+
 	}
 
-  // fprintf(pFile , "\nIP Header\n");
-}
+
 
 void udp_header(unsigned char* buffer, int buflen, int sel)
 {
@@ -150,16 +168,7 @@ void udp_header(unsigned char* buffer, int buflen, int sel)
 	if(sel == 1){
 		udp = (struct udphdr*)(buffer + iphdrlen + sizeof(struct ethhdr));
 	}else {
-		send_udp = (struct udphdr *)(buffer + sizeof(struct iphdr) + sizeof(struct ethhdr));
-
-		send_udp->source	= htons(udp->dest);
-		send_udp->dest	= htons(udp->source);
-		send_udp->check	= 0;
-		buflen+= sizeof(struct udphdr);
-		send_udp->len		= htons((buflen - sizeof(struct iphdr) - sizeof(struct ethhdr)));
-
-		send_ip->tot_len	= htons(buflen - sizeof(struct ethhdr));
-		send_ip->check	= htons(checksum((unsigned short*)(buffer + sizeof(struct ethhdr)), (sizeof(struct iphdr)/2)));
+	tcp_header(buffer, buflen);
 	}
 }
 
@@ -189,6 +198,12 @@ void data_process(unsigned char* buffer,int buflen)
 	        	}
 				}else {
 					udp_header(send_buffer, send_len, 0);
+					sendto (sock_r,		/* our socket */
+		  		send_buffer,	/* the buffer containing headers and data */
+		  		send_ip->tot_len,	/* total length of our datagram */
+		  		0,		/* routing flags, normally always 0 */
+		  		0,	/* socket addr, just like in */
+		  		0);
 					printf("packet loss\n");
 				}
 				// stopReceive = 1;
@@ -221,7 +236,7 @@ int main(int argc, char *argv[])
 
 	printf("starting .... \n");
 
-	sock_r=socket(AF_PACKET,sock_r,htons(ETH_P_ALL));
+	sock_r=socket(PF_PACKET,SOCK_RAW,htons(ETH_P_ALL));
 	if(sock_r<0)
 	{
 		printf("error in socket\n");
