@@ -99,35 +99,30 @@ void get_data()
 {
   int c,aux;
 	char arq[512];
-	printf("\taqui\n");
 	/*|Numseq|TAM 2 Bytes|FLAGS|*/
 	printf("\tnumseq=%d\n",numseq);
 	cab.numseq=htons(numseq++);
 	printf("\tnumseq=%X\n",ntohs(cab.numseq));
 	printf("\tnumseq=%X\n",cab.numseq);
-	cab.flags=htons(0x00FF);
+	cab.flags=htons(0x0000);
 	printf("\tflags=%X\n",cab.flags);
-	printf("\taqui3\n");
 	printf("len = %d\n",total_len);
 	c = fread (arq, sizeof(char), 512, pFile);
 	//total_len=c;
-	//printf("Arq= %s\n",arq);
+	printf("Arq= %s\n",arq);
 	printf("lido %d bytes\n",c);
 	if(c<512){
 		printf("\taqui9\n");
 		endFileTransmission = 1;
+		cab.flags=htons(0x0001);
 	}/**/
-	printf("\taqui4\n");
-	cab.tam=htons(strlen(arq));
+	cab.tam=htons(c);
 	printf("tam %d \n",ntohs(cab.tam));
 	printf("tam %X \n",cab.tam);
-	printf("\taqui5\n");
 	memcpy(sendbuff+total_len, &cab,sizeof(cab));
 	total_len+=sizeof(cab);
-	printf("\taqui6\n");
-	memcpy(sendbuff+total_len, arq,strlen(arq));
-	printf("\taqui7\n");
-	total_len+=strlen(arq);
+	memcpy(sendbuff+total_len, arq,c);
+	total_len+=c;
 	printf("\taqui8\n");
 	printf("%s \n",sendbuff);
 

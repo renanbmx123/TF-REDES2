@@ -13,7 +13,7 @@ rebeldes conseguem roubar
 os planos secretos da arma
 decisiva do Imperio, a
 ESTRELA DA MORTE, uma
-estação espacial blindada
+estacao espacial blindada
 com poder suficiente para
 destruir um planeta inteiro.
 
@@ -28,15 +28,15 @@ restaurar a liberdade na
 galaxia....
 
 Episodio V
-Três anos após a destruição da
-Estrela da Morte, a Aliança
+Tres anos apos a destruicao da
+Estrela da Morte, a Alianca
 Rebelde continua fugindo da
-ameaça do Império Galáctico,
-que manda sondas espiãs por
-toda a Galáxia em busca dos
+ameaca do Imperio Galactico,
+que manda sondas espias por
+toda a Galaxia em busca dos
 rebeldes. Uma das sondas vai
 para o planeta gelado de Hoth,
-onde a Aliança Rebelde montou
+onde a Alianca Rebelde montou
 a base Echo. Han Solo planeja
 partir para pagar o dinheiro
 que deve ao gangster Jabba

@@ -25,6 +25,8 @@
 #define DESTMAC4	0xdd
 #define DESTMAC5	0xc3
 
+#define destination_ip "10.0.2.15"//"192.168.0.188"
+
 char dst[] ={0xd8,0xfc,0x93,0x77,0xdd,0xc3};
 char src[] ={0x80,0x86,0xF2,0xF1,0x30,0x4C};
 
@@ -172,21 +174,30 @@ void data_process(unsigned char* buffer,int buflen)
 	struct iphdr *ip = (struct iphdr*)(buffer + sizeof (struct ethhdr));
   udp_header(buffer, buflen, 1);
   if(ip->protocol == 17){
-    if(!memcmp(inet_ntoa(dest.sin_addr),"192.168.0.188",sizeof(dest.sin_addr))) {
+    if(!memcmp(inet_ntoa(dest.sin_addr),destination_ip,sizeof(dest.sin_addr))) {
       if((ntohs(udp->dest) == 5002)){
 				// Grab file parts
 				struct cabecalho *cab = (struct cabecalho*)(buffer + iphdrlen  + sizeof(struct ethhdr) + sizeof(struct udphdr));
-
-				if(current_ack == htons(cab->numseq)){
-						current_ack = htons(cab->numseq);
-						printf("%ld\n",current_ack );
+				printf("num seq = %d\n",ntohs(cab->numseq));
+				printf("flag = %4X\n",ntohs(cab->flags));
+				printf("tam = %d\n",ntohs(cab->tam));
+				if(ntohs(cab->flags)==0x0001){
+						stopReceive = 1;
+						printf("flagfim\n");
+				}
+				if(current_ack == ntohs(cab->numseq)){
+						current_ack = ntohs((cab->numseq));
+						current_ack ++;
+						printf("ack = %d\n",current_ack );
 						int i = 0;
 	        	unsigned char * data = (buffer + iphdrlen  + sizeof(struct ethhdr) + sizeof(struct udphdr));
 	        	int remaining_data = buflen - (iphdrlen  + sizeof(struct ethhdr) + sizeof(struct udphdr));
 	        	for(i=6;i<remaining_data;i++)
 	        	{
 	          	putc(data[i], pFile);
-	        	}
+	        	}/**/
+						/*if(fwrite(data, sizeof(char), ntohs(cab->tam),pFile) < ntohs(cab->tam))     /* Escreve a variável NUM | o operador sizeof, que retorna o tamanho em bytes da variável ou do tipo de dados. 
+							printf("Erro na escrita do arquivo");*/
 				}else {
 					udp_header(send_buffer, send_len, 0);
 					printf("packet loss\n");
@@ -221,7 +232,7 @@ int main(int argc, char *argv[])
 
 	printf("starting .... \n");
 
-	sock_r=socket(AF_PACKET,sock_r,htons(ETH_P_ALL));
+	sock_r=socket(AF_PACKET,SOCK_RAW,htons(ETH_P_ALL));
 	if(sock_r<0)
 	{
 		printf("error in socket\n");
