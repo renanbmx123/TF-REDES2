@@ -23,6 +23,8 @@
 #define DESTMAC4	0xdd
 #define DESTMAC5	0xc3
 
+char dst[] ={0xd8,0xfc,0x93,0x77,0xdd,0xc3};
+char src[] ={0x80,0x86,0xF2,0xF1,0x30,0x4C};
 
 int iphdrlen;
 FILE *pFile;
@@ -31,6 +33,10 @@ char ifName[100];
 struct sockaddr saddr;
 struct sockaddr_in source,dest;
 struct ifreq ifreq_c,ifreq_i,ifreq_ip; /// for each ioctl keep diffrent ifreq structure otherwise error may come in sending(sendto )
+
+struct iphdr *ip;
+struct ethhdr *eth;
+struct udphdr *udp;
 
 // Funçoes Auxiliares
 void get_eth_index(int sock_raw)
@@ -57,25 +63,25 @@ void get_mac(int sock_raw)
 
 void ethernet_header(unsigned char* buffer,int buflen)
 {
-	struct ethhdr *eth = (struct ethhdr *)(buffer);
-  	eth->h_source[0] = (unsigned char)(ifreq_c.ifr_hwaddr.sa_data[0]);
-  	eth->h_source[1] = (unsigned char)(ifreq_c.ifr_hwaddr.sa_data[1]);
-   	eth->h_source[2] = (unsigned char)(ifreq_c.ifr_hwaddr.sa_data[2]);
-   	eth->h_source[3] = (unsigned char)(ifreq_c.ifr_hwaddr.sa_data[3]);
-   	eth->h_source[4] = (unsigned char)(ifreq_c.ifr_hwaddr.sa_data[4]);
-   	eth->h_source[5] = (unsigned char)(ifreq_c.ifr_hwaddr.sa_data[5]);
-   	eth->h_dest[0]    =  DESTMAC0;
-   	eth->h_dest[1]    =  DESTMAC1;
-   	eth->h_dest[2]    =  DESTMAC2;
-  	eth->h_dest[3]    =  DESTMAC3;
-   	eth->h_dest[4]    =  DESTMAC4;
-   	eth->h_dest[5]    =  DESTMAC5;
-   	eth->h_proto = htons(ETH_P_IP);   //0x800
+	  eth = (struct ethhdr *)(buffer);
+  	// eth->h_source[0] = (unsigned char)(ifreq_c.ifr_hwaddr.sa_data[0]);
+  	// eth->h_source[1] = (unsigned char)(ifreq_c.ifr_hwaddr.sa_data[1]);
+   	// eth->h_source[2] = (unsigned char)(ifreq_c.ifr_hwaddr.sa_data[2]);
+   	// eth->h_source[3] = (unsigned char)(ifreq_c.ifr_hwaddr.sa_data[3]);
+   	// eth->h_source[4] = (unsigned char)(ifreq_c.ifr_hwaddr.sa_data[4]);
+   	// eth->h_source[5] = (unsigned char)(ifreq_c.ifr_hwaddr.sa_data[5]);
+   	// eth->h_dest[0]    =  DESTMAC0;
+   	// eth->h_dest[1]    =  DESTMAC1;
+   	// eth->h_dest[2]    =  DESTMAC2;
+  	// eth->h_dest[3]    =  DESTMAC3;
+   	// eth->h_dest[4]    =  DESTMAC4;
+   	// eth->h_dest[5]    =  DESTMAC5;
+   	// eth->h_proto = htons(ETH_P_IP);   //0x800
 }
 
 void ip_header(unsigned char* buffer,int buflen)
 {
-	struct iphdr *ip = (struct iphdr*)(buffer + sizeof(struct ethhdr));
+	ip = (struct iphdr*)(buffer + sizeof(struct ethhdr));
 
 	iphdrlen =ip->ihl*4;
 
@@ -84,18 +90,6 @@ void ip_header(unsigned char* buffer,int buflen)
 	memset(&dest, 0, sizeof(dest));
 	dest.sin_addr.s_addr = ip->daddr;
 
-	printf("\nIP Header\n");
-
-	printf("\t|-Version              : %d\n",(unsigned int)ip->version);
-	printf("\t|-Internet Header Length  : %d DWORDS or %d Bytes\n",(unsigned int)ip->ihl,((unsigned int)(ip->ihl))*4);
-  printf("\t|-Type Of Service   : %d\n",(unsigned int)ip->tos);
-	printf("\t|-Total Length      : %d  Bytes\n",ntohs(ip->tot_len));
-  printf("\t|-Identification    : %d\n",ntohs(ip->id));
-	printf("\t|-Time To Live	    : %d\n",(unsigned int)ip->ttl);
-	printf("\t|-Protocol 	    : %d\n",(unsigned int)ip->protocol);
-	printf("\t|-Header Checksum   : %d\n",ntohs(ip->check));
-	printf("\t|-Source IP         : %s\n", inet_ntoa(source.sin_addr));
-	printf("\t|-Destination IP    : %s\n",inet_ntoa(dest.sin_addr));
 }
 
 void payload(unsigned char* buffer,int buflen)
@@ -110,19 +104,32 @@ void udp_header(unsigned char* buffer, int buflen)
 	ethernet_header(buffer,buflen);
 	ip_header(buffer,buflen);
 
-	struct udphdr *udp = (struct udphdr*)(buffer + iphdrlen + sizeof(struct ethhdr));
-	printf("\t|-Source Port    	: %d\n" , ntohs(udp->source));
-	printf("\t|-Destination Port	: %d\n" , ntohs(udp->dest));
-	printf("\t|-UDP Length      	: %d\n" , ntohs(udp->len));
-	printf( "\t|-UDP Checksum   	: %d\n" , ntohs(udp->check));
-
+	udp = (struct udphdr*)(buffer + iphdrlen + sizeof(struct ethhdr));
+  // if(!memcmp(buffer,src, sizeof(src))){
+  //    // IP
+     printf("\nIP Header\n");
+	   printf("\t|-Version              : %d\n",(unsigned int)ip->version);
+	   printf("\t|-Internet Header Length  : %d DWORDS or %d Bytes\n",(unsigned int)ip->ihl,((unsigned int)(ip->ihl))*4);
+     printf("\t|-Type Of Service   : %d\n",(unsigned int)ip->tos);
+	   printf("\t|-Total Length      : %d  Bytes\n",ntohs(ip->tot_len));
+     printf("\t|-Identification    : %d\n",ntohs(ip->id));
+	   printf("\t|-Time To Live	    : %d\n",(unsigned int)ip->ttl);
+	   printf("\t|-Protocol 	    : %d\n",(unsigned int)ip->protocol);
+	   printf("\t|-Header Checksum   : %d\n",ntohs(ip->check));
+	   printf("\t|-Source IP         : %s\n", inet_ntoa(source.sin_addr));
+	   printf("\t|-Destination IP    : %s\n",inet_ntoa(dest.sin_addr));
+     // UDP
+     printf("\t|-Source Port    	: %d\n" , ntohs(udp->source));
+   	 printf("\t|-Destination Port	: %d\n" , ntohs(udp->dest));
+   	 printf("\t|-UDP Length      	: %d\n" , ntohs(udp->len));
+   	 printf( "\t|-UDP Checksum   	: %d\n" , ntohs(udp->check));
+  // }
 	payload(buffer,buflen);
 
 }
 
 void data_process(unsigned char* buffer,int buflen)
 {
-  printf("Process \r");
 	struct iphdr *ip = (struct iphdr*)(buffer + sizeof (struct ethhdr));
   // if(ip->protocol == 17){
   udp_header(buffer,buflen);
@@ -159,10 +166,10 @@ int main(int argc, char *argv[]) {
   get_mac(sock_r); // Get mac address from interface
 
   /* Set interface to promiscuous mode - do we need to do this every time? */
-	strncpy(ifopts.ifr_name, ifName, IFNAMSIZ-1);
-	ioctl(sock_r, SIOCGIFFLAGS, &ifopts);
-	ifopts.ifr_flags |= IFF_PROMISC;
-	ioctl(sock_r, SIOCSIFFLAGS, &ifopts);
+	// strncpy(ifopts.ifr_name, ifName, IFNAMSIZ-1);
+	// ioctl(sock_r, SIOCGIFFLAGS, &ifopts);
+	// ifopts.ifr_flags |= IFF_PROMISC;
+	// ioctl(sock_r, SIOCSIFFLAGS, &ifopts);
 
   while (1) {
       saddr_len=sizeof saddr;
@@ -175,6 +182,7 @@ int main(int argc, char *argv[]) {
   		}
       //printf(" %d\n", buflen );
       data_process(buffer,buflen);
+      memset(buffer,0,sizeof(buffer));
     }
     return 0;
   }
