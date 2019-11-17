@@ -42,7 +42,7 @@ char ifName[100];
 #define DESTMAC4	0xdd
 #define DESTMAC5	0xc3
 
-#define destination_ip "192.168.0.187"
+#define destination_ip "10.0.2.15"
 
 int total_len = 0, send_len = 0;
 
@@ -97,34 +97,16 @@ void get_mac()
 
 void get_data()
 {
-  	int c,aux;
+  int c,aux;
 	char arq[512];
-	printf("\taqui\n");
 	/*|Numseq|TAM 2 Bytes|FLAGS|*/
-	/*sendbuff[total_len++]=htons(numseq);
-	aux=total_len;
-	sendbuff[total_len++]=htons(0x00);
-	sendbuff[total_len++]=htons(0x0);*/
 	printf("\tnumseq=%d\n",numseq);
 	cab.numseq=htons(numseq++);
 	printf("\tnumseq=%X\n",ntohs(cab.numseq));
 	printf("\tnumseq=%X\n",cab.numseq);
-	cab.flags=htons(0x00FF);
+	cab.flags=htons(0x0000);
 	printf("\tflags=%X\n",cab.flags);
-	printf("\taqui3\n");
 	printf("len = %d\n",total_len);
-      /*do {
-        c = fgetc(pFile);
-        printf("%c", c );
-        sendbuff[total_len++] = c;
-      } while ((total_len < 512) && !feof(pFile));
-
-	printf("len = %d\n",total_len);
-	sendbuff[aux]=htons(total_len);
-      if (feof(pFile)){
-        endFileTransmission = 1;
-	numseq=0;
-      }/**/
 	c = fread (arq, sizeof(char), 512, pFile);
 	//total_len=c;
 	//printf("Arq= %s\n",arq);
@@ -132,20 +114,17 @@ void get_data()
 	if(c<512){
 		printf("\taqui9\n");
 		endFileTransmission = 1;
+		cab.flags=htons(0x0001);
 	}/**/
-	printf("\taqui4\n");
-	cab.tam=htons(strlen(arq));
+	cab.tam=htons(c);
 	printf("tam %d \n",ntohs(cab.tam));
 	printf("tam %X \n",cab.tam);
-	printf("\taqui5\n");
 	memcpy(sendbuff+total_len, &cab,sizeof(cab));
 	total_len+=sizeof(cab);
-	printf("\taqui6\n");
-	memcpy(sendbuff+total_len, arq,strlen(arq));
-	printf("\taqui7\n");
-	total_len+=strlen(arq);
+	memcpy(sendbuff+total_len, arq,c);
+	total_len+=c;
 	printf("\taqui8\n");
-	printf("%s \n",sendbuff);
+	//printf("%s \n",sendbuff);
 
 }
 
@@ -180,7 +159,7 @@ void get_ip()
 {
 	memset(&ifreq_ip,0,sizeof(ifreq_ip));
 	strncpy(ifreq_ip.ifr_name,ifName,IFNAMSIZ-1);
-  	 if(ioctl(sock_raw,SIOCGIFADDR,&ifreq_ip)<0)
+  if(ioctl(sock_raw,SIOCGIFADDR,&ifreq_ip)<0)
  	 {
 		printf("error in SIOCGIFADDR \n");
 	 }
@@ -215,16 +194,16 @@ int main(int argc, char *argv[])
 	if(sock_raw == -1)
 		printf("error in socket");
 	sendbuff=(unsigned char*)malloc(64); // increase in case of large data.Here data is --> AA  BB  CC  DD  EE
-  	memset(sendbuff,0,64);
+  memset(sendbuff,0,64);
  	unsigned char *aux = sendbuff;
 
   	//inicializando estruturas.
-  	iph = (struct iphdr*)(sendbuff + sizeof(struct ethhdr));
-  	udph = (struct udphdr *)(sendbuff + sizeof(struct iphdr) + sizeof(struct ethhdr));
+  iph = (struct iphdr*)(sendbuff + sizeof(struct ethhdr));
+  udph = (struct udphdr *)(sendbuff + sizeof(struct iphdr) + sizeof(struct ethhdr));
 
 
 
-  	get_eth_index();  // interface number
+  get_eth_index();  // interface number
 	get_mac();
 	// get_ip();
 
