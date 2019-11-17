@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
+#include<errno.h>
 
 #include <arpa/inet.h>        // inet_pton() and inet_ntop()
 
@@ -48,7 +49,7 @@ struct udphdr *udp;
 struct iphdr *send_ip;
 struct ethhdr *send_eth;
 struct udphdr *send_udp;
-
+struct cabecalho cab;
 // Funçoes Auxiliares
 void get_eth_index(){
 	memset(&ifreq_i,0,sizeof(ifreq_i));
@@ -104,7 +105,7 @@ void ethernet_header(unsigned char* buffer,int buflen, int sel)
 			memcpy(send_eth->h_dest,eth->h_source,sizeof(eth->h_source));
 		  eth->h_proto = htons(ETH_P_IP);   //0x800
 		  printf("ethernet packaging done.\n");
-			printf("Mac= %.2X-%.2X-%.2X-%.2X-%.2X-%.2X\n",(unsigned char)(ifreq_c.ifr_hwaddr.sa_data[0]),(unsigned char)(ifreq_c.ifr_hwaddr.sa_data[1]),(unsigned char)(ifreq_c.ifr_hwaddr.sa_data[2]),(unsigned char)(ifreq_c.ifr_hwaddr.sa_data[3]),(unsigned char)(ifreq_c.ifr_hwaddr.sa_data[4]), 0x44);
+			printf("Mac= %.2X-%.2X-%.2X-%.2X-%.2X-%.2X\n",(unsigned char)(ifreq_c.ifr_hwaddr.sa_data[0]),(unsigned char)(ifreq_c.ifr_hwaddr.sa_data[1]),(unsigned char)(ifreq_c.ifr_hwaddr.sa_data[2]),(unsigned char)(ifreq_c.ifr_hwaddr.sa_data[3]),(unsigned char)(ifreq_c.ifr_hwaddr.sa_data[4]), (unsigned char)(ifreq_c.ifr_hwaddr.sa_data[5]));
 
 			buflen+=sizeof(struct ethhdr);
 		}
@@ -144,7 +145,21 @@ void ip_header(unsigned char* buffer,int buflen, int sel)
 
   // fprintf(pFile , "\nIP Header\n");
 }
-
+void get_data(unsigned char* buffer, int buflen, int sel){
+	/*|Numseq|TAM 2 Bytes|FLAGS|*/
+	printf("\tack=%d\n",current_ack);
+	cab.numseq=htons(current_ack);
+	printf("\tnumseq=%X\n",ntohs(cab.numseq));
+	printf("\tnumseq=%X\n",cab.numseq);
+	cab.flags=htons(0x0002);
+	printf("\tflags=%X\n",cab.flags);
+	printf("len = %d\n",buflen);
+	cab.tam=htons(0x0000);
+	printf("tam %d \n",ntohs(cab.tam));
+	printf("tam %X \n",cab.tam);
+	memcpy(buffer+buflen, &cab,sizeof(cab));
+	buflen+=sizeof(cab);
+}
 void udp_header(unsigned char* buffer, int buflen, int sel)
 {
 	ethernet_header(buffer,buflen, sel);
@@ -162,11 +177,13 @@ void udp_header(unsigned char* buffer, int buflen, int sel)
 
 		send_ip->tot_len	= htons(buflen - sizeof(struct ethhdr));
 		send_ip->check	= htons(checksum((unsigned short*)(buffer + sizeof(struct ethhdr)), (sizeof(struct iphdr)/2)));
+		get_data(buffer,buflen, sel);
 	}
 }
 
 void data_process(unsigned char* buffer,int buflen)
 {
+	socklen_t saddr_len;
 	unsigned char* send_buffer = (unsigned char *)malloc(65536);
 	int send_len = 0;
 	memset(send_buffer,0,65536);
@@ -198,6 +215,15 @@ void data_process(unsigned char* buffer,int buflen)
 	        	}/**/
 						/*if(fwrite(data, sizeof(char), ntohs(cab->tam),pFile) < ntohs(cab->tam))     /* Escreve a variável NUM | o operador sizeof, que retorna o tamanho em bytes da variável ou do tipo de dados. 
 							printf("Erro na escrita do arquivo");*/
+						udp_header(send_buffer, send_len, 0);
+						saddr_len=sizeof saddr;
+						send_len = send(sock_r,send_buffer, send_len,0);
+						if(send_len<0){
+								 printf("error in sending....sendlen=%d....errno=%d\n",send_len,errno);
+						}
+					//
+						//send_buffer = aux;
+						//send_len = 0;
 				}else {
 					udp_header(send_buffer, send_len, 0);
 					printf("packet loss\n");
@@ -251,8 +277,7 @@ int main(int argc, char *argv[])
 			return -1;
 		}
 		fflush(pFile);
-		data_process(buffer,buflen);
-
+		data_process(buffer,buflen);//send_buffer, send_len
 	}
 	fclose(pFile);
 	printf("DONE!!!!\n");

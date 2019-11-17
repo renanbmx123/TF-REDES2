@@ -109,7 +109,7 @@ void get_data()
 	printf("len = %d\n",total_len);
 	c = fread (arq, sizeof(char), 512, pFile);
 	//total_len=c;
-	printf("Arq= %s\n",arq);
+	//printf("Arq= %s\n",arq);
 	printf("lido %d bytes\n",c);
 	if(c<512){
 		printf("\taqui9\n");
@@ -124,7 +124,7 @@ void get_data()
 	memcpy(sendbuff+total_len, arq,c);
 	total_len+=c;
 	printf("\taqui8\n");
-	printf("%s \n",sendbuff);
+	//printf("%s \n",sendbuff);
 
 }
 
