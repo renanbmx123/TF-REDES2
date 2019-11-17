@@ -14,7 +14,6 @@
 #include <sys/ioctl.h>
 
 // #define ifName "enp7s0"
-#define ifName "wlp8s0"
 #define ETHERTYPE_IPV4 0x08000
 
 #define DESTMAC0	0xd8
@@ -27,6 +26,7 @@
 
 int iphdrlen;
 FILE *pFile;
+char ifName[100];
 
 struct sockaddr saddr;
 struct sockaddr_in source,dest;
@@ -122,12 +122,11 @@ void udp_header(unsigned char* buffer, int buflen)
 
 void data_process(unsigned char* buffer,int buflen)
 {
+  printf("Process \r");
 	struct iphdr *ip = (struct iphdr*)(buffer + sizeof (struct ethhdr));
-
-  if(ip->protocol == 17){
-    udp_header(buffer,buflen);
-	}
-	printf("Process \r");
+  // if(ip->protocol == 17){
+  udp_header(buffer,buflen);
+	// }
 
 }
 
@@ -138,8 +137,13 @@ int main(int argc, char *argv[]) {
 
   int packet_size;
 
+  if (argc > 1)
+    strcpy(ifName, argv[1]);
+  else
+  strcpy(ifName, "eth0");
+
   pFile=fopen ("RECEBIDO.txt","w");
-  // Allocate string buffer to hold incoming packet data
+  //Allocate string buffer to hold incoming packet data
   unsigned char* buffer = (unsigned char *)malloc(65536);
   memset(buffer,0,65536);
 
@@ -154,25 +158,22 @@ int main(int argc, char *argv[]) {
   get_eth_index(sock_r); //Get interface index hw
   get_mac(sock_r); // Get mac address from interface
 
-
   /* Set interface to promiscuous mode - do we need to do this every time? */
 	strncpy(ifopts.ifr_name, ifName, IFNAMSIZ-1);
 	ioctl(sock_r, SIOCGIFFLAGS, &ifopts);
 	ifopts.ifr_flags |= IFF_PROMISC;
 	ioctl(sock_r, SIOCSIFFLAGS, &ifopts);
 
-
-
-
   while (1) {
-    saddr_len=sizeof saddr;
-    printf(" wath\n" );
-  		buflen=recvfrom(sock_r,buffer,65536,0,NULL,NULL);
-  		if(buflen<0)
+      saddr_len=sizeof saddr;
+
+  		buflen=recvfrom(sock_r,buffer,65536,0,&saddr,(socklen_t *)&saddr_len);
+    	if(buflen<0)
   		{
   			printf("error in reading recvfrom function\n");
   			return -1;
   		}
+      //printf(" %d\n", buflen );
       data_process(buffer,buflen);
     }
     return 0;
