@@ -1,8 +1,7 @@
 # TF-REDES2
 
 Episodio IV
-UMA NOVA ESPERANÇA
-E um periodo de guerra civil.
+Em um periodo de guerra civil.
 Partindo de uma base secreta,
 naves rebeldes atacam e
 conquistam sua primeira
@@ -29,8 +28,7 @@ restaurar a liberdade na
 galaxia....
 
 Episodio V
-
-Três anos após a destruição da 
+Três anos após a destruição da
 Estrela da Morte, a Aliança
 Rebelde continua fugindo da
 ameaça do Império Galáctico,
