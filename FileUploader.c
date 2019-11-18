@@ -236,9 +236,10 @@ int recebe(){
 						}*/
 						if(numseq == ntohs(cbl->numseq)){
 							current_ack = ntohs((cbl->numseq));
-							current_ack ++;
+							//current_ack ++;
 							printf("ack = %d\n",current_ack );
 							int i = 0;
+							return 1;
 				}
 	
 			

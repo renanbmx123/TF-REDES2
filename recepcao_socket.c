@@ -271,7 +271,7 @@ int main(int argc,char *argv[])
 	if(ioctl(sockd, SIOCGIFINDEX, &ifr) < 0)
 		printf("erro no ioctl!");
 	
-	/*ioctl(sockd, SIOCGIFFLAGS, &ifr);
+	ioctl(sockd, SIOCGIFFLAGS, &ifr);
 	ifr.ifr_flags |= IFF_PROMISC;
 	ioctl(sockd, SIOCSIFFLAGS, &ifr);/**/
 	
