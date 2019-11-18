@@ -115,23 +115,23 @@ void get_data()
 	cab.flags=htons(0x0002);
 	printf("\tflags=%X\n",cab.flags);
 	printf("len = %d\n",total_len);
-	c = fread (arq, sizeof(char), 512, pFile2);
+	//c = fread (arq, sizeof(char), 512, pFile2);
 	//total_len=c;
 	//printf("Arq= %s\n",arq);
 	printf("lido %d bytes\n",c);
-	if(c<512){
+	/*if(c<512){
 		printf("\taqui9\n");
 		endFileTransmission = 1;
 		//cab.flags=htons(0x0001);
 	}/**/
-	cab.tam=htons(c);
+	cab.tam=htons(0);
 	printf("tam %d \n",ntohs(cab.tam));
 	printf("tam %X \n",cab.tam);
 	memcpy(sendbuff+total_len, &cab,sizeof(cab));
 	total_len+=sizeof(cab);
-	memcpy(sendbuff+total_len, arq,c);
+	/*memcpy(sendbuff+total_len, arq,c);
 	total_len+=c;
-	printf("\taqui8\n");
+	printf("\taqui8\n");*/
 	//printf("%s \n",sendbuff);
 
 }
@@ -183,13 +183,13 @@ void get_ip()
 	total_len += sizeof(struct iphdr);
 	get_udp();
 	iph->tot_len	= htons(total_len - sizeof(struct ethhdr));
-  printf("tamanho: %d\n",iph->tot_len);
+  //printf("tamanho: %d\n",iph->tot_len);
 	iph->check = 0;
 	iph->check	= htons(checksum((unsigned short*)(sendbuff + sizeof(struct ethhdr)), (sizeof(struct iphdr)/2)));
-
+	//printf("ip\n");
 }
 envia(){
-		pFile2=fopen ("README.md","r");
+		//pFile2=fopen ("README.md","r");
 
 
 	
@@ -236,7 +236,7 @@ envia(){
     send_len = 0;
     total_len+=sizeof(struct ethhdr);
 	//}
-    fclose (pFile2);
+    //fclose (pFile2);
 }
 
 int main(int argc,char *argv[])
@@ -285,6 +285,7 @@ int main(int argc,char *argv[])
 	}
 	// recepcao de pacotes
 	while (1) {
+			printf("Lendo\n");
 			memset(&buff1, 0, sizeof(buff1));
    		tam=recv(sockd,(char *) &buff1, sizeof(buff1), 0x0);
 			//recv(sockd,&recev, sizeof(recev), 0x0);
@@ -317,8 +318,9 @@ int main(int argc,char *argv[])
 
 							if(fwrite(data, sizeof(char), ntohs(cbl->tam),pFile) < ntohs(cbl->tam))     /* Escreve a variável NUM | o operador sizeof, que retorna o tamanho em bytes da variável ou do tipo de dados. */
 								printf("Erro na escrita do arquivo");
-
+							sleep(1);
 							envia();
+							printf("enviado ack");
 					///termina
 					if(stopReceive==1)break;
 						}	

@@ -206,10 +206,11 @@ int recebe(){
 	if(ioctl(sockd, SIOCGIFINDEX, &ifr) < 0)
 		printf("erro no ioctl!");
 	
-	/*ioctl(sockd, SIOCGIFFLAGS, &ifr);
+	ioctl(sockd, SIOCGIFFLAGS, &ifr);
 	ifr.ifr_flags |= IFF_PROMISC;
 	ioctl(sockd, SIOCSIFFLAGS, &ifr);/**/
-	
+		
+			printf("lendo\n");
 			memset(&buff1, 0, sizeof(buff1));
    		tam=recv(sockd,(char *) &buff1, sizeof(buff1), 0x0);
 			//recv(sockd,&recev, sizeof(recev), 0x0);
@@ -289,7 +290,7 @@ int main(int argc, char *argv[])
     printf("sending...\n");
 
     get_ip();
-
+		printf("enviando\n");
     send_len = sendto(sock_raw,sendbuff, total_len,0,(const struct sockaddr*)&sadr_ll,sizeof(struct sockaddr_ll));
 	    if(send_len<0){
 			     printf("error in sending....sendlen=%d....errno=%d\n",send_len,errno);
