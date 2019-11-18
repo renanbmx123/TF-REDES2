@@ -22,29 +22,33 @@
 
 #include "cabecalho.h"
 
+#define BUFFSIZE 1518
+unsigned char buff1[BUFFSIZE],buff2[BUFFSIZE]; // buffer de recepcao
 
-struct ifreq ifreq_c,ifreq_i,ifreq_ip; /// for each ioctl keep diffrent ifreq structure otherwise error may come in sending(sendto )
-struct iphdr *iph;
-struct udphdr *udph;
+struct ifreq ifreq_c,ifreq_i,ifreq_ip,ifr; /// for each ioctl keep diffrent ifreq structure otherwise error may come in sending(sendto )
+struct iphdr *iph,*iphR;
+struct udphdr *udph,*udphR;
 struct cabecalho cab;
+struct sockaddr_in source,dest;
 
 int sock_raw;
+int sockd,current_ack=0;
 uint8_t numseq=0;
 unsigned char *sendbuff;
 FILE *pFile;
 char endFileTransmission = 0;
 char ifName[100];
 
-#define DESTMAC0	0xd8
-#define DESTMAC1	0xfc
-#define DESTMAC2	0x93
-#define DESTMAC3	0x77
-#define DESTMAC4	0xdd
-#define DESTMAC5	0xc3
+#define DESTMAC0	0x08
+#define DESTMAC1	0x00
+#define DESTMAC2	0x27
+#define DESTMAC3	0x56
+#define DESTMAC4	0x75
+#define DESTMAC5	0x1A
 
 #define destination_ip "10.0.2.15"
 
-int total_len = 0, send_len = 0;
+int total_len = 0, send_len = 0,tam=0;
 
 void get_eth_index()
 {
@@ -175,11 +179,75 @@ void get_ip()
 	total_len += sizeof(struct iphdr);
 	get_udp();
 	iph->tot_len	= htons(total_len - sizeof(struct ethhdr));
-  //printf("tamanho: %d\n",htonl(iph->tot_len));
+  printf("tamanho: %d\n",iph->tot_len);
 	iph->check = 0;
 	iph->check	= htons(checksum((unsigned short*)(sendbuff + sizeof(struct ethhdr)), (sizeof(struct iphdr)/2)));
 
 }
+
+int recebe(){
+	unsigned char *data;
+		int stopReceive;
+		struct ethhdr *eth,*ethR;
+		struct cabecalho *cbl;
+		unsigned char *aux;
+
+
+
+    if((sockd = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL))) < 0) {
+       printf("Erro na criacao do socket.\n");
+    }
+		/*sendbuff=(unsigned char*)malloc(64); // increase in case of large data.Here data is --> AA  BB  CC  DD  EE
+		memset(sendbuff,0,64);
+		aux = sendbuff;*/
+	// O procedimento abaixo eh utilizado para "setar" a interface em modo promiscuo
+	//strcpy(ifr.ifr_name, "eth0");s
+	strcpy(ifr.ifr_name, ifName);
+	if(ioctl(sockd, SIOCGIFINDEX, &ifr) < 0)
+		printf("erro no ioctl!");
+	
+	/*ioctl(sockd, SIOCGIFFLAGS, &ifr);
+	ifr.ifr_flags |= IFF_PROMISC;
+	ioctl(sockd, SIOCSIFFLAGS, &ifr);/**/
+	
+			memset(&buff1, 0, sizeof(buff1));
+   		tam=recv(sockd,(char *) &buff1, sizeof(buff1), 0x0);
+			//recv(sockd,&recev, sizeof(recev), 0x0);
+			ethR = (struct ethhdr *)(buff1);
+			iphR = (struct iphdr*)(buff1 + sizeof(struct ethhdr));
+  		udphR = (struct udphdr *)(buff1 + sizeof(struct iphdr) + sizeof(struct ethhdr));
+			cbl=	(struct cabecalho *)(buff1 + sizeof(struct iphdr) + sizeof(struct ethhdr) + sizeof(struct udphdr));
+			data=(buff1 + sizeof(struct iphdr) + sizeof(struct ethhdr) + sizeof(struct udphdr)+sizeof(struct cabecalho));
+			if(ethR->h_proto==htons(ETH_P_IP)){
+				//if(iph->daddr[0]== 10 && iph->daddr[1]== 0 && iph->daddr[2]==  2 && iph->daddr[3]==15 ) {
+      		if((ntohs(udphR->dest) == 5001)){
+					// impressão do conteudo - exemplo Endereco Destino e Endereco Origem
+						//printf("MAC Destino: %x:%x:%x:%x:%x:%x \n", buff1[0],buff1[1],buff1[2],buff1[3],buff1[4],buff1[5]);
+						printf("MAC Destino: %x:%x:%x:%x:%x:%x \n", ethR->h_source[0],ethR->h_source[1],ethR->h_source[2],ethR->h_source[3],ethR->h_source[4],ethR->h_source[5]);
+						//printf("MAC Origem:  %x:%x:%x:%x:%x:%x \n\n", buff1[6],buff1[7],buff1[8],buff1[9],buff1[10],buff1[11]);
+						printf("MAC Origem:  %x:%x:%x:%x:%x:%x \n\n", ethR->h_dest[0],ethR->h_dest[1],ethR->h_dest[2],ethR->h_dest[3],ethR->h_dest[4],ethR->h_dest[5]);
+						//printf("data= %s\n",data);
+						printf("num seq = %d\n",ntohs(cbl->numseq));
+						printf("flag = %4X\n",ntohs(cbl->flags));
+						printf("tam = %d\n",ntohs(cbl->tam));
+					/*	if(ntohs(cbl->flags)==0x0002){
+								stopReceive = 1;
+								printf("flagfim\n");
+						}*/
+						if(numseq == ntohs(cbl->numseq)){
+							current_ack = ntohs((cbl->numseq));
+							current_ack ++;
+							printf("ack = %d\n",current_ack );
+							int i = 0;
+				}
+	
+			
+		}
+
+}
+
+}
+
 
 int main(int argc, char *argv[])
 {
@@ -231,6 +299,7 @@ int main(int argc, char *argv[])
     total_len = 0;
     send_len = 0;
     total_len+=sizeof(struct ethhdr);
+		recebe();
 	}
     fclose (pFile);
 
