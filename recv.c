@@ -1,3 +1,4 @@
+  
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -177,11 +178,7 @@ void udp_header(unsigned char* buffer, int buflen, int sel)
 {
 	ethernet_header(buffer,buflen, sel);
 	ip_header(buffer,buflen, sel);
-	if(sel == 1){
-		udp = (struct udphdr*)(buffer + iphdrlen + sizeof(struct ethhdr));
-	}else {
-	// tcp_header(buffer, buflen);
-	}
+	udp = (struct udphdr*)(buffer + iphdrlen + sizeof(struct ethhdr));
 
 }
 
@@ -220,6 +217,12 @@ void data_process(unsigned char* buffer,int buflen)
 						/*if(fwrite(data, sizeof(char), ntohs(cab->tam),pFile) < ntohs(cab->tam))     /* Escreve a variável NUM | o operador sizeof, que retorna o tamanho em bytes da variável ou do tipo de dados.
 							printf("Erro na escrita do arquivo");*/
 						udp_header(send_buffer, send_len, 0);
+							if(sendto (sock_r,		/* our socket */
+		  				send_buffer,	/* the buffer containing headers and data */
+		  				send_ip->tot_len,	/* total length of our datagram */
+		  				0,		/* routing flags, normally always 0 */
+		  				0,	/* socket addr, just like in */
+		  				0)<0)printf("erro");
 						//saddr_len=sizeof saddr;
 
 					//
@@ -290,3 +293,4 @@ int main(int argc, char *argv[])
 	printf("DONE!!!!\n");
 
 }
+
