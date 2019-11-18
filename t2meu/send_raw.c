@@ -105,7 +105,7 @@ int main(int argc, char *argv[])
 			cab.flags=htons(0x0001);
 			for(i=c;i<512;i++){
 					cab.msg[i]='A';
-			}
+			}printf("\tmsg=%s\n",cab.msg);/**/
 		}/**/
 		cab.tam=htons(c);
 		printf("tam %d \n",ntohs(cab.tam));
@@ -115,7 +115,7 @@ int main(int argc, char *argv[])
 		printf("siziep =  %li\n", sizeof(struct ip_hdr));
 		printf("sizeudp =  %li\n", sizeof(struct udp_hdr));
 		/* Fill the Ethernet frame header */
-		memcpy(buffer_u.cooked_data.ethernet.dst_addr, bcast_mac, 6);
+		memcpy(buffer_u.cooked_data.ethernet.dst_addr, dst_mac, 6);
 		memcpy(buffer_u.cooked_data.ethernet.src_addr, src_mac, 6);
 		buffer_u.cooked_data.ethernet.eth_type = htons(ETH_P_IP);
 
@@ -148,7 +148,7 @@ int main(int argc, char *argv[])
 		printf("UDPlen - %d\n", ntohs(buffer_u.cooked_data.payload.udp.udphdr.udp_len));
 		/* Fill UDP payload */
 		memcpy(buffer_u.raw_data + sizeof(struct eth_hdr) + sizeof(struct ip_hdr) + sizeof(struct udp_hdr), &cab, sizeof(struct cabecalho));
-		//memcpy(buffer_u.raw_data + sizeof(struct eth_hdr) + sizeof(struct ip_hdr) + sizeof(struct udp_hdr), cab.msg, c);//+sizeof(struct cabecalho)
+		//memcpy(buffer_u.raw_data + sizeof(struct eth_hdr) + sizeof(struct ip_hdr) + sizeof(struct udp_hdr)+ sizeof(struct cabecalho), msg, c);//+sizeof(struct cabecalho)
 
 		/* Send it.. */
 		memcpy(socket_address.sll_addr, dst_mac, 6);
