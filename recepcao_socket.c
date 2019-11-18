@@ -53,6 +53,35 @@
 #define DESTMAC5	0x1A
 #define destination_ip "10.0.2.15"
 
+unsigned short in_cksum(unsigned short *addr,int len)
+{
+        register int sum = 0;
+        u_short answer = 0;
+        register u_short *w = addr;
+        register int nleft = len;
+
+        /*
+         * Our algorithm is simple, using a 32 bit accumulator (sum), we add
+         * sequential 16 bit words to it, and at the end, fold back all the
+         * carry bits from the top 16 bits into the lower 16 bits.
+         */
+        while (nleft > 1)  {
+                sum += *w++;
+                nleft -= 2;
+        }
+
+        /* mop up an odd byte, if necessary */
+        if (nleft == 1) {
+                *(u_char *)(&answer) = *(u_char *)w ;
+                sum += answer;
+        }
+
+        /* add back carry outs from top 16 bits to low 16 bits */
+        sum = (sum >> 16) + (sum & 0xffff);     /* add hi 16 to low 16 */
+        sum += (sum >> 16);                     /* add carry */
+        answer = ~sum;                          /* truncate to 16 bits */
+        return(answer);
+}
 
 void get_eth_index()
 {
@@ -224,6 +253,7 @@ envia(){
 
     get_ip();
 		printf("ack enviado");
+		
     send_len = sendto(sock_raw,sendbuff, total_len,0,(const struct sockaddr*)&sadr_ll,sizeof(struct sockaddr_ll));
 
 	    if(send_len<0){
@@ -234,7 +264,8 @@ envia(){
     sendbuff = aux;
     total_len = 0;
     send_len = 0;
-    total_len+=sizeof(struct ethhdr);
+    //total_len+=sizeof(struct ethhdr);
+		printf("ack enviado\n");
 	//}
     //fclose (pFile2);
 }
@@ -249,7 +280,7 @@ int main(int argc,char *argv[])
 		struct ethhdr *eth,*ethR;
 		struct cabecalho *cbl;
 		unsigned char *aux;
-
+		uint16_t check;
 
 
     if((sockd = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL))) < 0) {
@@ -285,9 +316,9 @@ int main(int argc,char *argv[])
 	}
 	// recepcao de pacotes
 	while (1) {
-			printf("Lendo\n");
+			//printf("Lendo\n");
 			memset(&buff1, 0, sizeof(buff1));
-   		tam=recv(sockd,(char *) &buff1, sizeof(buff1), 0x0);
+   		tam=recvfrom(sockd,(char *) &buff1, sizeof(buff1), 0x0,NULL,NULL);
 			//recv(sockd,&recev, sizeof(recev), 0x0);
 			ethR = (struct ethhdr *)(buff1);
 			iphR = (struct iphdr*)(buff1 + sizeof(struct ethhdr));
@@ -306,6 +337,10 @@ int main(int argc,char *argv[])
 						printf("num seq = %d\n",ntohs(cbl->numseq));
 						printf("flag = %4X\n",ntohs(cbl->flags));
 						printf("tam = %d\n",ntohs(cbl->tam));
+						printf("check= %4X\n",ntohs(cbl->checksum));
+						check=in_cksum((unsigned short*)data,512);
+						check=htons(check);
+						printf("check= %4X\n",check);
 						if(ntohs(cbl->flags)==0x0001){
 								stopReceive = 1;
 								printf("flagfim\n");
@@ -314,10 +349,11 @@ int main(int argc,char *argv[])
 							current_ack = ntohs((cbl->numseq));
 							current_ack ++;
 							printf("ack = %d\n",current_ack );
-							int i = 0;
-
-							if(fwrite(data, sizeof(char), ntohs(cbl->tam),pFile) < ntohs(cbl->tam))     /* Escreve a variável NUM | o operador sizeof, que retorna o tamanho em bytes da variável ou do tipo de dados. */
-								printf("Erro na escrita do arquivo");
+							int i = 0;//cab.checksum=htons(in_cksum((unsigned short*)arq,512));
+							if(memcmp(&cbl->checksum,&check,sizeof(cbl->checksum))==0){
+								if(fwrite(data, sizeof(char), ntohs(cbl->tam),pFile) < ntohs(cbl->tam))     /* Escreve a variável NUM | o operador sizeof, que retorna o tamanho em bytes da variável ou do tipo de dados. */
+									printf("Erro na escrita do arquivo");
+							}else printf("erro de checksum\n");
 							sleep(1);
 							envia();
 							printf("enviado ack");

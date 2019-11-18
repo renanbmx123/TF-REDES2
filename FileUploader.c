@@ -20,6 +20,8 @@
 
 #include<arpa/inet.h>
 
+#include <time.h>
+#include <math.h>
 #include "cabecalho.h"
 
 #define BUFFSIZE 1518
@@ -38,6 +40,7 @@ unsigned char *sendbuff;
 FILE *pFile;
 char endFileTransmission = 0;
 char ifName[100];
+int flag=0;
 
 #define DESTMAC0	0x08
 #define DESTMAC1	0x00
@@ -49,6 +52,36 @@ char ifName[100];
 #define destination_ip "10.0.2.15"
 
 int total_len = 0, send_len = 0,tam=0;
+
+unsigned short in_cksum(unsigned short *addr,int len)
+{
+        register int sum = 0;
+        u_short answer = 0;
+        register u_short *w = addr;
+        register int nleft = len;
+
+        /*
+         * Our algorithm is simple, using a 32 bit accumulator (sum), we add
+         * sequential 16 bit words to it, and at the end, fold back all the
+         * carry bits from the top 16 bits into the lower 16 bits.
+         */
+        while (nleft > 1)  {
+                sum += *w++;
+                nleft -= 2;
+        }
+
+        /* mop up an odd byte, if necessary */
+        if (nleft == 1) {
+                *(u_char *)(&answer) = *(u_char *)w ;
+                sum += answer;
+        }
+
+        /* add back carry outs from top 16 bits to low 16 bits */
+        sum = (sum >> 16) + (sum & 0xffff);     /* add hi 16 to low 16 */
+        sum += (sum >> 16);                     /* add carry */
+        answer = ~sum;                          /* truncate to 16 bits */
+        return(answer);
+}
 
 void get_eth_index()
 {
@@ -119,14 +152,21 @@ void get_data()
 		printf("\taqui9\n");
 		endFileTransmission = 1;
 		cab.flags=htons(0x0001);
+		flag=1;
+		for(aux=c;aux<512;aux++){
+			arq[aux]='A';
+			printf("a");
+		}
 	}/**/
 	cab.tam=htons(c);
 	printf("tam %d \n",ntohs(cab.tam));
 	printf("tam %X \n",cab.tam);
+	cab.checksum=htons(in_cksum((unsigned short*)arq,512));	
+	printf("check %X \n",ntohs(cab.checksum));
 	memcpy(sendbuff+total_len, &cab,sizeof(cab));
 	total_len+=sizeof(cab);
-	memcpy(sendbuff+total_len, arq,c);
-	total_len+=c;
+	memcpy(sendbuff+total_len, arq,512);
+	total_len+=512;
 	printf("\taqui8\n");
 	//printf("%s \n",sendbuff);
 
@@ -209,10 +249,10 @@ int recebe(){
 	ioctl(sockd, SIOCGIFFLAGS, &ifr);
 	ifr.ifr_flags |= IFF_PROMISC;
 	ioctl(sockd, SIOCSIFFLAGS, &ifr);/**/
-		
+			//while(1){
 			printf("lendo\n");
 			memset(&buff1, 0, sizeof(buff1));
-   		tam=recv(sockd,(char *) &buff1, sizeof(buff1), 0x0);
+   		tam=recvfrom(sockd,(char *) &buff1, sizeof(buff1), 0x0, NULL, NULL);
 			//recv(sockd,&recev, sizeof(recev), 0x0);
 			ethR = (struct ethhdr *)(buff1);
 			iphR = (struct iphdr*)(buff1 + sizeof(struct ethhdr));
@@ -241,8 +281,8 @@ int recebe(){
 							printf("ack = %d\n",current_ack );
 							int i = 0;
 							return 1;
-				}
-	
+				}else return 0;
+			//}
 			
 		}
 
@@ -253,6 +293,7 @@ int recebe(){
 
 int main(int argc, char *argv[])
 {
+		int controle=1,rec=0,cont=0;
   	pFile=fopen ("README.md","r");
 
 
@@ -288,20 +329,32 @@ int main(int argc, char *argv[])
 	sadr_ll.sll_addr[5]  = DESTMAC5;
 	while(!endFileTransmission){
     printf("sending...\n");
+		for(cont=0;cont<controle;cont++){
+		  get_ip();
+			printf("enviando\n");
+		  send_len = sendto(sock_raw,sendbuff, total_len,0,(const struct sockaddr*)&sadr_ll,sizeof(struct sockaddr_ll));
+			  if(send_len<0){
+					   printf("error in sending....sendlen=%d....errno=%d\n",send_len,errno);
+					      return -1;
+			         }
+		  //
+		  sendbuff = aux;
+		  total_len = 0;
+		  send_len = 0;
+		  total_len+=sizeof(struct ethhdr);
+			if(flag == 1 ) { 
+				controle=cont;
+				break;
+			}
+		}
+		for(cont=0;cont<controle;cont++){
+			rec=recebe();
+		}
+		if(rec!=0){
+			controle*=2;
+		}else{
 
-    get_ip();
-		printf("enviando\n");
-    send_len = sendto(sock_raw,sendbuff, total_len,0,(const struct sockaddr*)&sadr_ll,sizeof(struct sockaddr_ll));
-	    if(send_len<0){
-			     printf("error in sending....sendlen=%d....errno=%d\n",send_len,errno);
-			        return -1;
-	           }
-    //
-    sendbuff = aux;
-    total_len = 0;
-    send_len = 0;
-    total_len+=sizeof(struct ethhdr);
-		recebe();
+		}
 	}
     fclose (pFile);
 
