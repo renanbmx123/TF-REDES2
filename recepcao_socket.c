@@ -153,14 +153,17 @@ void get_data()
 		endFileTransmission = 1;
 		//cab.flags=htons(0x0001);
 	}/**/
+	for(c=0;c<512;c++){
+		arq[c]='A';
+	}
 	cab.tam=htons(0);
 	printf("tam %d \n",ntohs(cab.tam));
 	printf("tam %X \n",cab.tam);
 	memcpy(sendbuff+total_len, &cab,sizeof(cab));
 	total_len+=sizeof(cab);
-	/*memcpy(sendbuff+total_len, arq,c);
-	total_len+=c;
-	printf("\taqui8\n");*/
+	memcpy(sendbuff+total_len, arq,512);
+	total_len+=512;
+	printf("\taqui8\n");
 	//printf("%s \n",sendbuff);
 
 }

@@ -34,7 +34,8 @@ struct cabecalho cab;
 struct sockaddr_in source,dest;
 
 int sock_raw;
-int sockd,current_ack=0;
+int sockd;
+uint16_t current_ack=1;
 uint8_t numseq=0;
 unsigned char *sendbuff;
 FILE *pFile;
@@ -149,13 +150,12 @@ void get_data()
 	//printf("Arq= %s\n",arq);
 	printf("lido %d bytes\n",c);
 	if(c<512){
-		printf("\taqui9\n");
+		//printf("\taqui9\n");
 		endFileTransmission = 1;
 		cab.flags=htons(0x0001);
 		flag=1;
 		for(aux=c;aux<512;aux++){
 			arq[aux]='A';
-			printf("a");
 		}
 	}/**/
 	cab.tam=htons(c);
@@ -167,7 +167,7 @@ void get_data()
 	total_len+=sizeof(cab);
 	memcpy(sendbuff+total_len, arq,512);
 	total_len+=512;
-	printf("\taqui8\n");
+	//printf("\taqui8\n");
 	//printf("%s \n",sendbuff);
 
 }
@@ -228,6 +228,7 @@ void get_ip()
 int recebe(){
 	unsigned char *data;
 		int stopReceive;
+		uint16_t seq=0;
 		struct ethhdr *eth,*ethR;
 		struct cabecalho *cbl;
 		unsigned char *aux;
@@ -249,7 +250,7 @@ int recebe(){
 	ioctl(sockd, SIOCGIFFLAGS, &ifr);
 	ifr.ifr_flags |= IFF_PROMISC;
 	ioctl(sockd, SIOCSIFFLAGS, &ifr);/**/
-			//while(1){
+			while(1){
 			printf("lendo\n");
 			memset(&buff1, 0, sizeof(buff1));
    		tam=recvfrom(sockd,(char *) &buff1, sizeof(buff1), 0x0, NULL, NULL);
@@ -259,14 +260,17 @@ int recebe(){
   		udphR = (struct udphdr *)(buff1 + sizeof(struct iphdr) + sizeof(struct ethhdr));
 			cbl=	(struct cabecalho *)(buff1 + sizeof(struct iphdr) + sizeof(struct ethhdr) + sizeof(struct udphdr));
 			data=(buff1 + sizeof(struct iphdr) + sizeof(struct ethhdr) + sizeof(struct udphdr)+sizeof(struct cabecalho));
+			printf("MAC Destino: %x:%x:%x:%x:%x:%x \n", ethR->h_source[0],ethR->h_source[1],ethR->h_source[2],ethR->h_source[3],ethR->h_source[4],ethR->h_source[5]);
+			//printf("MAC Origem:  %x:%x:%x:%x:%x:%x \n\n", buff1[6],buff1[7],buff1[8],buff1[9],buff1[10],buff1[11]);
+			printf("MAC Origem:  %x:%x:%x:%x:%x:%x \n\n", ethR->h_dest[0],ethR->h_dest[1],ethR->h_dest[2],ethR->h_dest[3],ethR->h_dest[4],ethR->h_dest[5]);
+			printf("proto = %4X",(ntohs(ethR->h_proto)));
+			printf("porta = %d",(ntohs(udphR->dest)));
 			if(ethR->h_proto==htons(ETH_P_IP)){
 				//if(iph->daddr[0]== 10 && iph->daddr[1]== 0 && iph->daddr[2]==  2 && iph->daddr[3]==15 ) {
       		if((ntohs(udphR->dest) == 5001)){
 					// impressão do conteudo - exemplo Endereco Destino e Endereco Origem
 						//printf("MAC Destino: %x:%x:%x:%x:%x:%x \n", buff1[0],buff1[1],buff1[2],buff1[3],buff1[4],buff1[5]);
-						printf("MAC Destino: %x:%x:%x:%x:%x:%x \n", ethR->h_source[0],ethR->h_source[1],ethR->h_source[2],ethR->h_source[3],ethR->h_source[4],ethR->h_source[5]);
-						//printf("MAC Origem:  %x:%x:%x:%x:%x:%x \n\n", buff1[6],buff1[7],buff1[8],buff1[9],buff1[10],buff1[11]);
-						printf("MAC Origem:  %x:%x:%x:%x:%x:%x \n\n", ethR->h_dest[0],ethR->h_dest[1],ethR->h_dest[2],ethR->h_dest[3],ethR->h_dest[4],ethR->h_dest[5]);
+						
 						//printf("data= %s\n",data);
 						printf("num seq = %d\n",ntohs(cbl->numseq));
 						printf("flag = %4X\n",ntohs(cbl->flags));
@@ -274,15 +278,18 @@ int recebe(){
 					/*	if(ntohs(cbl->flags)==0x0002){
 								stopReceive = 1;
 								printf("flagfim\n");
-						}*/
-						if(numseq == ntohs(cbl->numseq)){
-							current_ack = ntohs((cbl->numseq));
+						}*///memcmp(&cbl->checksum,&check,sizeof(cbl->checksum))==0
+						seq=ntohs(cbl->numseq);
+						printf("ack = %d\n",current_ack);
+						printf("seq = %d\n",seq);
+						if(current_ack==seq){
+							current_ack++;
 							//current_ack ++;
-							printf("ack = %d\n",current_ack );
+							printf("ack = %d\n",current_ack);
 							int i = 0;
 							return 1;
-				}else return 0;
-			//}
+						}else return 0;
+			}
 			
 		}
 
@@ -293,7 +300,7 @@ int recebe(){
 
 int main(int argc, char *argv[])
 {
-		int controle=1,rec=0,cont=0;
+		int controle=1,rec=1,cont=0;
   	pFile=fopen ("README.md","r");
 
 
@@ -343,17 +350,22 @@ int main(int argc, char *argv[])
 		  send_len = 0;
 		  total_len+=sizeof(struct ethhdr);
 			if(flag == 1 ) { 
-				controle=cont;
+				controle=cont+1;
 				break;
 			}
 		}
 		for(cont=0;cont<controle;cont++){
-			rec=recebe();
+			rec*=recebe();
+			printf("rec=%d",rec);
 		}
+		printf("rec=%d",rec);
 		if(rec!=0){
+			printf("return1");
 			controle*=2;
 		}else{
-
+			printf("return0");
+			controle=1;
+			rec=1;
 		}
 	}
     fclose (pFile);
