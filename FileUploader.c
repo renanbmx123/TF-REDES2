@@ -28,19 +28,19 @@
 unsigned char buff1[BUFFSIZE],buff2[BUFFSIZE]; // buffer de recepcao
 
 struct ifreq ifreq_c,ifreq_i,ifreq_ip,ifr; /// for each ioctl keep diffrent ifreq structure otherwise error may come in sending(sendto )
-struct iphdr *iph,*iphR;
-struct udphdr *udph,*udphR;
-struct cabecalho cab;
+struct iphdr *iph,*iphR; //cabecalho ip de envio e recepcao
+struct udphdr *udph,*udphR;//cabecalho UDP de envio e recpcao
+struct cabecalho cab; //cabechalho implementado
 struct sockaddr_in source,dest;
 
-int sock_raw;
+int sock_raw; 
 int sockd;
-uint16_t current_ack=1;
-uint8_t numseq=0;
-unsigned char *sendbuff;
-FILE *pFile;
-char endFileTransmission = 0;
-char ifName[100];
+uint16_t current_ack=1; // valor do ack atual
+uint8_t numseq=0; //numero de sequencia do pacote
+unsigned char *sendbuff; // buffer de envio
+FILE *pFile; // arquivo
+char endFileTransmission = 0; // flag de fim da transmicao
+char ifName[100]; // nome da interface de rede
 int flag=0;
 
 #define DESTMAC0	0x08
@@ -52,9 +52,9 @@ int flag=0;
 
 #define destination_ip "10.0.2.15"
 
-int total_len = 0, send_len = 0,tam=0;
+int total_len = 0, send_len = 0,tam=0; 
 
-unsigned short in_cksum(unsigned short *addr,int len)
+unsigned short in_cksum(unsigned short *addr,int len) //checksum do cabeçalho implementado
 {
         register int sum = 0;
         u_short answer = 0;
@@ -84,7 +84,7 @@ unsigned short in_cksum(unsigned short *addr,int len)
         return(answer);
 }
 
-void get_eth_index()
+void get_eth_index()  // funcao pra pegar o indice da interface
 {
 	memset(&ifreq_i,0,sizeof(ifreq_i));
 	strncpy(ifreq_i.ifr_name,ifName,IFNAMSIZ-1);
@@ -96,7 +96,7 @@ void get_eth_index()
 
 }
 
-void get_mac()
+void get_mac() // funcao pra pegar o mac da maquina local
 {
 	memset(&ifreq_c,0,sizeof(ifreq_c));
 	strncpy(ifreq_c.ifr_name,ifName,IFNAMSIZ-1);
@@ -133,11 +133,12 @@ void get_mac()
 
 }
 
-void get_data()
+void get_data() // funcao que monta o cabecalho e os dados a serem enviados
 {
   int c,aux;
 	char arq[512];
 	/*|Numseq|TAM 2 Bytes|FLAGS|*/
+	//monta o cabecalho
 	printf("\tnumseq=%d\n",numseq);
 	cab.numseq=htons(numseq++);
 	printf("\tnumseq=%X\n",ntohs(cab.numseq));
@@ -145,10 +146,11 @@ void get_data()
 	cab.flags=htons(0x0000);
 	printf("\tflags=%X\n",cab.flags);
 	printf("len = %d\n",total_len);
-	c = fread (arq, sizeof(char), 512, pFile);
+	c = fread (arq, sizeof(char), 512, pFile); // le o arquivo
 	//total_len=c;
 	//printf("Arq= %s\n",arq);
 	printf("lido %d bytes\n",c);
+	//preenche o padding e a flag de fim
 	if(c<512){
 		//printf("\taqui9\n");
 		endFileTransmission = 1;
@@ -163,16 +165,16 @@ void get_data()
 	printf("tam %X \n",cab.tam);
 	cab.checksum=htons(in_cksum((unsigned short*)arq,512));	
 	printf("check %X \n",ntohs(cab.checksum));
-	memcpy(sendbuff+total_len, &cab,sizeof(cab));
+	memcpy(sendbuff+total_len, &cab,sizeof(cab));//monta o cabecalho pra envio
 	total_len+=sizeof(cab);
-	memcpy(sendbuff+total_len, arq,512);
+	memcpy(sendbuff+total_len, arq,512);//monta os dados pra envio
 	total_len+=512;
 	//printf("\taqui8\n");
 	//printf("%s \n",sendbuff);
 
 }
 
-void get_udp()
+void get_udp() // funcao que monta o cabecalho UDP
 {
   udph->source	= htons(5001);
 	udph->dest	= htons(5002);
@@ -184,7 +186,7 @@ void get_udp()
 
 }
 
-unsigned short checksum(unsigned short* buff, int _16bitword)
+unsigned short checksum(unsigned short* buff, int _16bitword)// checksum do cabecalho IP
 {
 	unsigned long sum;
 	for(sum=0;_16bitword>0;_16bitword--)
@@ -199,7 +201,7 @@ unsigned short checksum(unsigned short* buff, int _16bitword)
 }
 
 
-void get_ip()
+void get_ip()// funcao que monta o cabecaho IP
 {
 	memset(&ifreq_ip,0,sizeof(ifreq_ip));
 	strncpy(ifreq_ip.ifr_name,ifName,IFNAMSIZ-1);
@@ -225,7 +227,7 @@ void get_ip()
 
 }
 
-int recebe(){
+int recebe(){ // funcao que recebe o ACK
 	unsigned char *data;
 		int stopReceive;
 		uint16_t seq=0;
@@ -238,9 +240,6 @@ int recebe(){
     if((sockd = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL))) < 0) {
        printf("Erro na criacao do socket.\n");
     }
-		/*sendbuff=(unsigned char*)malloc(64); // increase in case of large data.Here data is --> AA  BB  CC  DD  EE
-		memset(sendbuff,0,64);
-		aux = sendbuff;*/
 	// O procedimento abaixo eh utilizado para "setar" a interface em modo promiscuo
 	//strcpy(ifr.ifr_name, "eth0");s
 	strcpy(ifr.ifr_name, ifName);
@@ -250,24 +249,25 @@ int recebe(){
 	ioctl(sockd, SIOCGIFFLAGS, &ifr);
 	ifr.ifr_flags |= IFF_PROMISC;
 	ioctl(sockd, SIOCSIFFLAGS, &ifr);/**/
-			while(1){
+	// laco de repeticao pra pegar os pacotes de ack 
+	while(1){
 			printf("lendo\n");
 			memset(&buff1, 0, sizeof(buff1));
    		tam=recvfrom(sockd,(char *) &buff1, sizeof(buff1), 0x0, NULL, NULL);
 			//recv(sockd,&recev, sizeof(recev), 0x0);
-			ethR = (struct ethhdr *)(buff1);
-			iphR = (struct iphdr*)(buff1 + sizeof(struct ethhdr));
-  		udphR = (struct udphdr *)(buff1 + sizeof(struct iphdr) + sizeof(struct ethhdr));
-			cbl=	(struct cabecalho *)(buff1 + sizeof(struct iphdr) + sizeof(struct ethhdr) + sizeof(struct udphdr));
-			data=(buff1 + sizeof(struct iphdr) + sizeof(struct ethhdr) + sizeof(struct udphdr)+sizeof(struct cabecalho));
-			printf("MAC Destino: %x:%x:%x:%x:%x:%x \n", ethR->h_source[0],ethR->h_source[1],ethR->h_source[2],ethR->h_source[3],ethR->h_source[4],ethR->h_source[5]);
+			ethR = (struct ethhdr *)(buff1); // pega cabechao ethernet
+			iphR = (struct iphdr*)(buff1 + sizeof(struct ethhdr));//pega o cabecalho IP
+  		udphR = (struct udphdr *)(buff1 + sizeof(struct iphdr) + sizeof(struct ethhdr));//pega o cabecalho UDP
+			cbl=	(struct cabecalho *)(buff1 + sizeof(struct iphdr) + sizeof(struct ethhdr) + sizeof(struct udphdr));// pega cabecalho criado
+			data=(buff1 + sizeof(struct iphdr) + sizeof(struct ethhdr) + sizeof(struct udphdr)+sizeof(struct cabecalho));//pega os dados
+			printf("MAC Origem: %x:%x:%x:%x:%x:%x \n", ethR->h_source[0],ethR->h_source[1],ethR->h_source[2],ethR->h_source[3],ethR->h_source[4],ethR->h_source[5]);
 			//printf("MAC Origem:  %x:%x:%x:%x:%x:%x \n\n", buff1[6],buff1[7],buff1[8],buff1[9],buff1[10],buff1[11]);
-			printf("MAC Origem:  %x:%x:%x:%x:%x:%x \n\n", ethR->h_dest[0],ethR->h_dest[1],ethR->h_dest[2],ethR->h_dest[3],ethR->h_dest[4],ethR->h_dest[5]);
+			printf("MAC Destino:  %x:%x:%x:%x:%x:%x \n\n", ethR->h_dest[0],ethR->h_dest[1],ethR->h_dest[2],ethR->h_dest[3],ethR->h_dest[4],ethR->h_dest[5]);
 			printf("proto = %4X",(ntohs(ethR->h_proto)));
 			printf("porta = %d",(ntohs(udphR->dest)));
-			if(ethR->h_proto==htons(ETH_P_IP)){
+			if(ethR->h_proto==htons(ETH_P_IP)){ // verifica se e protocolo IP
 				//if(iph->daddr[0]== 10 && iph->daddr[1]== 0 && iph->daddr[2]==  2 && iph->daddr[3]==15 ) {
-      		if((ntohs(udphR->dest) == 5001)){
+      		if((ntohs(udphR->dest) == 5001)){ //verifica a porta
 					// impressão do conteudo - exemplo Endereco Destino e Endereco Origem
 						//printf("MAC Destino: %x:%x:%x:%x:%x:%x \n", buff1[0],buff1[1],buff1[2],buff1[3],buff1[4],buff1[5]);
 						
@@ -282,7 +282,7 @@ int recebe(){
 						seq=ntohs(cbl->numseq);
 						printf("ack = %d\n",current_ack);
 						printf("seq = %d\n",seq);
-						if(current_ack==seq){
+						if(current_ack==seq){ // verifica se e o ack correto
 							current_ack++;
 							//current_ack ++;
 							printf("ack = %d\n",current_ack);
@@ -303,7 +303,7 @@ int main(int argc, char *argv[])
 		int controle=1,rec=1,cont=0;
   	pFile=fopen ("README.md","r");
 
-
+	// pega a interface
 	if (argc > 1)
 		strcpy(ifName, argv[1]);
 	else
@@ -311,8 +311,8 @@ int main(int argc, char *argv[])
 	sock_raw=socket(AF_PACKET,SOCK_RAW,IPPROTO_RAW);
 	if(sock_raw == -1)
 		printf("error in socket");
-	sendbuff=(unsigned char*)malloc(64); // increase in case of large data.Here data is --> AA  BB  CC  DD  EE
-  memset(sendbuff,0,64);
+	sendbuff=(unsigned char*)malloc(562); // aloca o buffer de envio
+  memset(sendbuff,0,562);
  	unsigned char *aux = sendbuff;
 
   	//inicializando estruturas.
@@ -320,7 +320,7 @@ int main(int argc, char *argv[])
   udph = (struct udphdr *)(sendbuff + sizeof(struct iphdr) + sizeof(struct ethhdr));
 
 
-
+	//pega o mac e a interface
   get_eth_index();  // interface number
 	get_mac();
 	// get_ip();
@@ -336,7 +336,9 @@ int main(int argc, char *argv[])
 	sadr_ll.sll_addr[5]  = DESTMAC5;
 	while(!endFileTransmission){
     printf("sending...\n");
+		//for para o slowstart
 		for(cont=0;cont<controle;cont++){
+			//monta o cabecalho IP e envia
 		  get_ip();
 			printf("enviando\n");
 		  send_len = sendto(sock_raw,sendbuff, total_len,0,(const struct sockaddr*)&sadr_ll,sizeof(struct sockaddr_ll));
@@ -354,10 +356,12 @@ int main(int argc, char *argv[])
 				break;
 			}
 		}
+		//recebe todos os ack
 		for(cont=0;cont<controle;cont++){
 			rec*=recebe();
 			printf("rec=%d",rec);
 		}
+		//controle o slow start
 		printf("rec=%d",rec);
 		if(rec!=0){
 			printf("return1");

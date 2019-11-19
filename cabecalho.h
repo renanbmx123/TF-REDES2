@@ -14,10 +14,10 @@
 
 struct cabecalho
   {
-	uint16_t numseq;    
-	uint16_t tam;
-	uint16_t flags;
-	uint16_t checksum;
+	uint16_t numseq;	//numero de sequencia do pacote
+	uint16_t tam;			//tamanho dos dados armazenados
+	uint16_t flags;		//flags de comunicação
+	uint16_t checksum;//checksum
   };
 
 struct recv{
